@@ -1,0 +1,69 @@
+// tiles.hex -- 64 tiles of 8x8 pixels, 2 bits per pixel (Chapter 2.3).
+// One line per tile: 8 rows, top to bottom, one 16-bit word each.
+// Bits 15:14 are the leftmost pixel, bits 1:0 the rightmost.
+// Tiles 0-4: Snake. Tiles 5-31: test patterns. Tiles 32-63: font8x8
+// glyphs for ASCII 0x20-0x3F (public domain, see Chapter 2.2) in color 3.
+0000 0000 0000 0000 0000 0000 0000 0000   //  0 0x00 empty
+5455 5455 5455 0000 5554 5554 5554 0000   //  1 0x01 wall
+2aa8 aaaa abaa aaaa aaae aaaa aeaa 2aa8   //  2 0x02 body
+2aa8 aaaa a28a a28a aaaa affa aaaa 2aa8   //  3 0x03 head
+0080 0200 3ffc ffdf fff7 ffff 3ffc 0ff0   //  4 0x04 food
+7777 2277 d278 8e79 4e4e 394e e943 9540   //  5 0x05 pattern
+9393 4e93 3e94 ea95 aaaa 55aa 05af f1ac   //  6 0x06 pattern
+c6c6 b1c6 61cb 1dc8 dddd 88dd 78d2 24d3   //  7 0x07 pattern
+2222 dd22 8d27 7924 3939 e439 943e 403f   //  8 0x08 pattern
+4e4e 394e e943 9540 5555 0055 f05a ac5b   //  9 0x09 pattern
+aaaa 55aa 05af f1ac b1b1 6cb1 1cb6 c8b7   // 10 0x0a pattern
+c6c6 b1c6 61cb 1dc8 dddd 88dd 78d2 24d3   // 11 0x0b pattern
+2222 dd22 8d27 7924 3939 e439 943e 403f   // 12 0x0c pattern
+4e4e 394e e943 9540 5555 0055 f05a ac5b   // 13 0x0d pattern
+b1b1 6cb1 1cb6 c8b7 8888 7788 278d d38e   // 14 0x0e pattern
+dddd 88dd 78d2 24d3 e4e4 93e4 43e9 3fea   // 15 0x0f pattern
+3939 e439 943e 403f 0000 ff00 af05 5b06   // 16 0x10 pattern
+5555 0055 f05a ac5b 6c6c 1b6c cb61 b762   // 17 0x11 pattern
+b1b1 6cb1 1cb6 c8b7 8888 7788 278d d38e   // 18 0x12 pattern
+dddd 88dd 78d2 24d3 e4e4 93e4 43e9 3fea   // 19 0x13 pattern
+3939 e439 943e 403f 0000 ff00 af05 5b06   // 20 0x14 pattern
+6c6c 1b6c cb61 b762 7777 2277 d278 8e79   // 21 0x15 pattern
+8888 7788 278d d38e 9393 4e93 3e94 ea95   // 22 0x16 pattern
+e4e4 93e4 43e9 3fea ffff aaff 5af0 06f1   // 23 0x17 pattern
+0000 ff00 af05 5b06 1b1b c61b b61c 621d   // 24 0x18 pattern
+6c6c 1b6c cb61 b762 7777 2277 d278 8e79   // 25 0x19 pattern
+8888 7788 278d d38e 9393 4e93 3e94 ea95   // 26 0x1a pattern
+e4e4 93e4 43e9 3fea ffff aaff 5af0 06f1   // 27 0x1b pattern
+1b1b c61b b61c 621d 2222 dd22 8d27 7924   // 28 0x1c pattern
+7777 2277 d278 8e79 4e4e 394e e943 9540   // 29 0x1d pattern
+9393 4e93 3e94 ea95 aaaa 55aa 05af f1ac   // 30 0x1e pattern
+ffff aaff 5af0 06f1 c6c6 b1c6 61cb 1dc8   // 31 0x1f pattern
+0000 0000 0000 0000 0000 0000 0000 0000   // 32 0x20 ' '
+03c0 0ff0 0ff0 03c0 03c0 0000 03c0 0000   // 33 0x21 '!'
+3cf0 3cf0 0000 0000 0000 0000 0000 0000   // 34 0x22 '"'
+3cf0 3cf0 fffc 3cf0 fffc 3cf0 3cf0 0000   // 35 0x23 '#'
+0f00 3ff0 f000 3fc0 00f0 ffc0 0f00 0000   // 36 0x24 '$'
+0000 f03c f0f0 03c0 0f00 3c3c f03c 0000   // 37 0x25 '%'
+0fc0 3cf0 0fc0 3f3c f3f0 f0f0 3f3c 0000   // 38 0x26 '&'
+3c00 3c00 f000 0000 0000 0000 0000 0000   // 39 0x27 '''
+03c0 0f00 3c00 3c00 3c00 0f00 03c0 0000   // 40 0x28 '('
+3c00 0f00 03c0 03c0 03c0 0f00 3c00 0000   // 41 0x29 ')'
+0000 3c3c 0ff0 ffff 0ff0 3c3c 0000 0000   // 42 0x2a '*'
+0000 0f00 0f00 fff0 0f00 0f00 0000 0000   // 43 0x2b '+'
+0000 0000 0000 0000 0000 0f00 0f00 3c00   // 44 0x2c ','
+0000 0000 0000 fff0 0000 0000 0000 0000   // 45 0x2d '-'
+0000 0000 0000 0000 0000 0f00 0f00 0000   // 46 0x2e '.'
+003c 00f0 03c0 0f00 3c00 f000 c000 0000   // 47 0x2f '/'
+3ff0 f03c f0fc f3fc ff3c fc3c 3ff0 0000   // 48 0x30 '0'
+0f00 3f00 0f00 0f00 0f00 0f00 fff0 0000   // 49 0x31 '1'
+3fc0 f0f0 00f0 0fc0 3c00 f0f0 fff0 0000   // 50 0x32 '2'
+3fc0 f0f0 00f0 0fc0 00f0 f0f0 3fc0 0000   // 51 0x33 '3'
+03f0 0ff0 3cf0 f0f0 fffc 00f0 03fc 0000   // 52 0x34 '4'
+fff0 f000 ffc0 00f0 00f0 f0f0 3fc0 0000   // 53 0x35 '5'
+0fc0 3c00 f000 ffc0 f0f0 f0f0 3fc0 0000   // 54 0x36 '6'
+fff0 f0f0 00f0 03c0 0f00 0f00 0f00 0000   // 55 0x37 '7'
+3fc0 f0f0 f0f0 3fc0 f0f0 f0f0 3fc0 0000   // 56 0x38 '8'
+3fc0 f0f0 f0f0 3ff0 00f0 03c0 3f00 0000   // 57 0x39 '9'
+0000 0f00 0f00 0000 0000 0f00 0f00 0000   // 58 0x3a ':'
+0000 0f00 0f00 0000 0000 0f00 0f00 3c00   // 59 0x3b ';'
+03c0 0f00 3c00 f000 3c00 0f00 03c0 0000   // 60 0x3c '<'
+0000 0000 fff0 0000 0000 fff0 0000 0000   // 61 0x3d '='
+3c00 0f00 03c0 00f0 03c0 0f00 3c00 0000   // 62 0x3e '>'
+3fc0 f0f0 00f0 03c0 0f00 0000 0f00 0000   // 63 0x3f '?'
