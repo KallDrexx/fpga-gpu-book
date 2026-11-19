@@ -45,14 +45,20 @@ module tb_frame_text;
         .o_hsync(t_hs), .o_vsync(t_vs), .o_de(t_de),
         .o_red(r), .o_grn(g), .o_blu(b));
 
+    // Hold the dumpers' vsync high until screen 1 is written, so a design
+    // whose delay registers power up at 0 (o_vsync low for a few clocks)
+    // isn't mistaken for a vsync and frame 0 isn't captured mid-write.
+    reg  armed = 1'b0;
+    wire dump_vs = t_vs | ~armed;
+
     wire [1:0] done, error;
     frame_dump #(.WIDTH(640), .HEIGHT(480), .BITS(3), .SKIP(0),
                  .FILE("build/frame_text_string.ppm")) u_dump0 (
-        .i_clk(clk), .i_vsync(t_vs), .i_de(t_de), .i_red(r), .i_grn(g), .i_blu(b),
+        .i_clk(clk), .i_vsync(dump_vs), .i_de(t_de), .i_red(r), .i_grn(g), .i_blu(b),
         .o_done(done[0]), .o_error(error[0]));
     frame_dump #(.WIDTH(640), .HEIGHT(480), .BITS(3), .SKIP(1),
                  .FILE("build/frame_text_codes.ppm")) u_dump1 (
-        .i_clk(clk), .i_vsync(t_vs), .i_de(t_de), .i_red(r), .i_grn(g), .i_blu(b),
+        .i_clk(clk), .i_vsync(dump_vs), .i_de(t_de), .i_red(r), .i_grn(g), .i_blu(b),
         .o_done(done[1]), .o_error(error[1]));
 
     // ---------------------------------------------------------------- screens
@@ -157,6 +163,7 @@ module tb_frame_text;
         // Screen 1 is written long before the first frame starts.
         make_string_screen;
         write_screen;
+        armed = 1'b1;
         // Screen 2 is written after frame 1 ends, inside vertical blanking.
         wait (done[0]);
         make_codes_screen;
