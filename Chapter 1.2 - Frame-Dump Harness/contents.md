@@ -195,7 +195,7 @@ As designs grow, put the video output of each graphics step in one portable modu
 
 Create `projects/1.2-test-patterns/`. Its `top_goboard.v` follows Chapter 1.1: instantiate `vga_timing` and `test_pattern`, register the syncs and color through one output stage, and map the color buses to the `o_VGA_*` pins. For pattern selection, pass the four buttons through `synchronizer` and keep a 2-bit register: pressing switch 1 to 4 selects pattern 0 to 3. Bounce does not matter here, since every bounce selects the same pattern. Start at power-up on the border (pattern 2), since that is the one to check on the monitor.
 
-Set the project's `TESTS` to `tb_vga_timing tb_color_bars tb_frame_patterns`.
+Set the project's `TESTS` to `tb_vga_timing tb_color_bars`. Frame tests such as `tb_frame_patterns` run through `make frame-patterns` from the repository root, not through `TESTS`: they read and write files by root-relative paths.
 
 The reference design used to write this chapter reports:
 
