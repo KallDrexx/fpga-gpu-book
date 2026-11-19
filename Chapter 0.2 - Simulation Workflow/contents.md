@@ -252,7 +252,7 @@ The segment pins, from `boards/goboard/goboard.pcf`:
 | `o_Segment1_C` | 93 | | `o_Segment2_C` | 97 |
 | `o_Segment1_D` | 91 | | `o_Segment2_D` | 95 |
 | `o_Segment1_E` | 90 | | `o_Segment2_E` | 94 |
-| `o_Segment1_F` | 1 | | `o_Segment2_F` | 98 |
+| `o_Segment1_F` | 1 | | `o_Segment2_F` | 8 |
 | `o_Segment1_G` | 2 | | `o_Segment2_G` | 96 |
 
 The pins are separate 1-bit ports, so you will split each decoder's bus into its bits: `assign o_Segment1_A = ~w_seg_hi[0];` and so on. An `assign {o_Segment1_G, o_Segment1_F, ..., o_Segment1_A} = ~w_seg_hi;` does all seven in one line, but get the order right: the leftmost name receives the most significant bit.

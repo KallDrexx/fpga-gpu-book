@@ -150,7 +150,7 @@ TESTS := tb_synchronizer tb_edge_detect tb_debounce tb_button_counter
 
 - `i_Switch_1` (pin 53, high when pressed) into a `button_counter`, passing `CLK_HZ` down,
 - the upper nibble of the count to digit 1 and the lower nibble to digit 2, through two `hex_to_7seg` decoders,
-- every segment inverted, because the segments are active low. The pins are those from Chapter 0.2: `o_Segment1_A` to `o_Segment1_G` on 3, 4, 93, 91, 90, 1, 2 and `o_Segment2_A` to `o_Segment2_G` on 100, 99, 97, 95, 94, 98, 96.
+- every segment inverted, because the segments are active low. The pins are those from Chapter 0.2: `o_Segment1_A` to `o_Segment1_G` on 3, 4, 93, 91, 90, 1, 2 and `o_Segment2_A` to `o_Segment2_G` on 100, 99, 97, 95, 94, 8, 96.
 
 The board has no reset button in this design, so the count starts from `00` at power-up. To start over, unplug and replug the board, or run `make prog` again.
 
