@@ -1,0 +1,362 @@
+// tb_gpu_rect.v -- self-checking testbench for FILL_RECT in uart_gpu (Chapter 4.3).
+//
+// Same harness as Chapter 4.2's tb_uart_gpu: the testbench is the host and
+// the framebuffer. It sends sim/rect_stream.hex into i_rx as real 8N1 serial
+// at 2.5 Mbaud (20 clocks per bit at 50 MHz), decodes every reply byte on
+// o_tx, and keeps its own framebuffer and palette RAMs on the DUT's draw
+// ports (writes on a rising edge, reads one clock later, write-first). At the
+// end it compares
+//
+//   * every reply byte with sim/rect_replies.hex (the FB_CRC results),
+//   * all 76,800 framebuffer bytes with sim/rect_fb.hex,
+//   * all 256 palette entries with sim/rect_pal.hex.
+//
+// The stream (from `.venv/bin/python sim/py/ref_rect.py sim`, which feeds it
+// to host/gpu_model.py) holds edge cases in small groups, malformed
+// FILL_RECTs, a full-screen fill in a throughput window, a back-pressure
+// burst, and 500 random rectangles with an FB_CRC every 50. A wrong FB_CRC
+// reply is reported with its line from sim/rect_labels.txt, which says which
+// group of rectangles it covers.
+//
+// Stream entries (4 hex digits): 00NN = send byte NN; 1NNN = fence, wait
+// until NNN (hex) reply bytes have arrived in all; 2000 = send without
+// looking at o_ready; 2001 = wait for o_ready before each byte; 2002 / 2003 =
+// start / end the throughput window; FFFF = end.
+//
+// Throughput: inside the window the only command that writes is one
+// full-screen FILL_RECT (76,800 pixels). The testbench counts the clocks from
+// its first framebuffer write to its last and requires at most
+// 76,800 + 4 * 240 + 16: one pixel per clock, with up to 4 spare clocks per
+// row. Setup clocks before the first write are not counted.
+//
+// Also checked: o_overflow never rises; no write outside the 76,800 bytes; no
+// X on the write enables; no reply bytes beyond the expected ones.
+//
+// Run from build/sim (make test / make sim-tb_gpu_rect); files are read from
+// ../../sim/ and ../../rtl/common/. Takes about 40 seconds.
+`timescale 1ns/1ps
+`default_nettype none
+
+module tb_gpu_rect;
+    localparam integer CLK_HZ   = 50_000_000;
+    localparam integer BAUD     = 2_500_000;
+    localparam integer BIT_NS   = 1_000_000_000 / BAUD;     // 400 ns = 20 clocks
+    localparam integer FBN      = 76800;
+    localparam integer WIN_MAX  = 76800 + 4 * 240 + 16;     // clocks, first to last write
+    localparam         DIR      = "../../";
+
+    reg clk = 1'b0;
+    always #10 clk = ~clk;                                 // 50 MHz
+
+    // ---------------- DUT ----------------
+    reg         rst = 1'b1;
+    reg         rx  = 1'b1;
+    wire        tx, ready, overflow;
+    wire        fb_we, pal_we;
+    wire [16:0] fb_addr;
+    wire [7:0]  fb_wdata, pal_addr;
+    wire [23:0] pal_wdata;
+    reg  [7:0]  fb_rdata = 8'd0;
+
+    uart_gpu #(.CLK_HZ(CLK_HZ), .BAUD(BAUD)) dut (
+        .i_clk(clk), .i_rst(rst), .i_rx(rx), .o_tx(tx),
+        .o_ready(ready), .o_overflow(overflow),
+        .o_fb_we(fb_we), .o_fb_addr(fb_addr), .o_fb_wdata(fb_wdata), .i_fb_rdata(fb_rdata),
+        .o_pal_we(pal_we), .o_pal_addr(pal_addr), .o_pal_wdata(pal_wdata)
+    );
+
+    // ---------------- the framebuffer and palette the DUT draws into ----------------
+    reg [7:0]  fb  [0:FBN-1];
+    reg [23:0] pal [0:255];
+    integer    n_fb_wr = 0, n_pal_wr = 0, bad_wr = 0, x_we = 0;
+    integer    clocks = 0;
+    reg        in_win = 1'b0;
+    integer    win_first = -1, win_last = -1, win_wr = 0;
+    always @(posedge clk) begin
+        clocks = clocks + 1;
+        if (!rst && (fb_we === 1'bx || pal_we === 1'bx)) begin
+            if (x_we == 0) $display("tb_gpu_rect: o_fb_we or o_pal_we is X at %0t", $time);
+            x_we = x_we + 1;
+        end
+        if (fb_we === 1'b1) begin
+            if (fb_addr >= FBN) begin
+                if (bad_wr < 3) $display("tb_gpu_rect: framebuffer write to address %0d (past 76,799) at %0t", fb_addr, $time);
+                bad_wr = bad_wr + 1;
+            end else
+                fb[fb_addr] <= fb_wdata;
+            fb_rdata <= fb_wdata;                          // write-first, like framebuffer.v
+            n_fb_wr = n_fb_wr + 1;
+            if (in_win) begin
+                if (win_first < 0) win_first = clocks;
+                win_last = clocks;
+                win_wr = win_wr + 1;
+            end
+        end else
+            fb_rdata <= (fb_addr < FBN) ? fb[fb_addr] : 8'hxx;
+        if (pal_we === 1'b1) begin
+            pal[pal_addr] <= pal_wdata;
+            n_pal_wr = n_pal_wr + 1;
+        end
+    end
+
+    // ---------------- expected data ----------------
+    reg [15:0]      stream  [0:65535];
+    reg [7:0]       replies [0:4095];
+    reg [7:0]       exp_fb  [0:FBN-1];
+    reg [23:0]      exp_pal [0:255];
+    reg [8*128-1:0] labels  [0:255];                       // one per FB_CRC reply
+    integer         n_exp = 0;
+
+    // ---------------- reply receiver (8N1 on o_tx) ----------------
+    reg [7:0] got [0:4095];
+    integer   n_got = 0, rx_err = 0, k;
+    reg [7:0] b;
+    always begin
+        @(negedge tx);
+        #(BIT_NS / 2);
+        if (tx !== 1'b0) begin
+            if (rx_err < 3) $display("tb_gpu_rect: o_tx start bit too short at %0t", $time);
+            rx_err = rx_err + 1;
+        end else begin
+            for (k = 0; k < 8; k = k + 1) begin
+                #(BIT_NS);
+                b[k] = tx;
+            end
+            #(BIT_NS);
+            if (tx !== 1'b1) begin
+                if (rx_err < 3) $display("tb_gpu_rect: o_tx stop bit missing at %0t", $time);
+                rx_err = rx_err + 1;
+            end
+            if (n_got < 4096) got[n_got] = b;
+            n_got = n_got + 1;
+            #(BIT_NS / 4);
+        end
+    end
+
+    // ---------------- sender ----------------
+    integer n_sent = 0, ready_low = 0;
+    reg     honor = 1'b1;
+    always @(posedge clk) if (!ready) ready_low = ready_low + 1;
+
+    reg overflow_seen = 1'b0;
+    always @(posedge clk)
+        if (!rst && overflow === 1'b1 && !overflow_seen) begin
+            $display("tb_gpu_rect: o_overflow rose after %0d bytes sent (honoring o_ready: %0d)", n_sent, honor);
+            overflow_seen = 1'b1;
+        end
+
+    task send_byte(input [7:0] d);
+        integer j;
+        begin
+            if (honor) begin
+                @(negedge clk);
+                while (ready !== 1'b1) @(negedge clk);
+            end
+            rx = 1'b0; #(BIT_NS);
+            for (j = 0; j < 8; j = j + 1) begin rx = d[j]; #(BIT_NS); end
+            rx = 1'b1; #(BIT_NS);
+            n_sent = n_sent + 1;
+        end
+    endtask
+
+    // ---------------- CRC of the testbench's own framebuffer (diagnosis only) ----------------
+    function [31:0] fb_crc32(input integer dummy);
+        integer a, j;
+        reg [31:0] c;
+        begin
+            c = 32'hFFFFFFFF;
+            for (a = 0; a < FBN; a = a + 1) begin
+                c = c ^ {24'd0, fb[a]};
+                for (j = 0; j < 8; j = j + 1)
+                    c = c[0] ? (c >> 1) ^ 32'hEDB88320 : (c >> 1);
+            end
+            fb_crc32 = c ^ 32'hFFFFFFFF;
+        end
+    endfunction
+
+    // Compares reply bytes [n_checked, upto) with the expected ones, 4 at a
+    // time, at a fence. The first wrong reply is reported with its label.
+    integer reply_err = 0, n_fence = 0, n_checked = 0;
+    task check_replies(input integer upto);
+        integer r;
+        reg [31:0] want, have, mine;
+        begin
+            for (r = n_checked; r + 3 < upto; r = r + 4) begin
+                want = {replies[r+3], replies[r+2], replies[r+1], replies[r]};
+                have = {got[r+3], got[r+2], got[r+1], got[r]};
+                if (have !== want) begin
+                    if (reply_err == 0) begin
+                        $display("tb_gpu_rect: FB_CRC reply %0d is %h, expected %h. It covers: %0s",
+                                 r / 4 + 1, have, want, labels[r / 4]);
+                        if (r + 4 >= upto) begin
+                            mine = fb_crc32(0);
+                            if (mine === want)
+                                $display("tb_gpu_rect:   the framebuffer is right at this point (its CRC is %h): check the CRC unit", mine);
+                            else
+                                $display("tb_gpu_rect:   the framebuffer is already wrong at this point (its CRC is %h): check the commands before this FB_CRC", mine);
+                        end
+                    end
+                    reply_err = reply_err + 1;
+                end
+            end
+            n_checked = upto;
+        end
+    endtask
+
+    // Reads a hex list of unknown length (after its comment line) into
+    // stream[] (which = 0) or replies[] (which = 1).
+    task read_list(input [8*64-1:0] name, input integer which);
+        integer fd, n, rc;
+        reg [15:0] v;
+        reg [8*200-1:0] line;
+        begin
+            fd = $fopen(name, "r");
+            if (fd != 0) begin
+                rc = $fgets(line, fd);           // the // comment line
+                n = 0;
+                while ($fscanf(fd, "%h\n", v) == 1) begin
+                    if (which == 0) stream[n] = v; else replies[n] = v[7:0];
+                    n = n + 1;
+                end
+                $fclose(fd);
+            end
+        end
+    endtask
+
+    task read_labels(input [8*64-1:0] name);
+        integer fd, n, rc;
+        reg [8*128-1:0] line;
+        begin
+            fd = $fopen(name, "r");
+            n = 0;
+            if (fd != 0) begin
+                line = 0;
+                rc = $fgets(line, fd);
+                while (rc > 0 && n < 256) begin
+                    if (line[7:0] == 8'h0A) line = line >> 8;   // drop the newline
+                    labels[n] = line;
+                    n = n + 1;
+                    line = 0;
+                    rc = $fgets(line, fd);
+                end
+                $fclose(fd);
+            end
+        end
+    endtask
+
+    // ---------------- main sequence ----------------
+    integer i, p, n_fb_err = 0, n_pal_err = 0, first_bad = -1, t0, win_span = -1;
+    reg     timeout = 1'b0, win_done = 1'b0;
+    initial begin
+        if ($test$plusargs("vcd")) begin
+            $dumpfile("tb_gpu_rect.vcd");
+            $dumpvars(0, tb_gpu_rect);
+        end
+        for (i = 0; i < 65536; i = i + 1) stream[i] = 16'bx;
+        for (i = 0; i < 4096; i = i + 1) replies[i] = 8'bx;
+        for (i = 0; i < 256; i = i + 1) labels[i] = "(no label)";
+        $readmemh({DIR, "rtl/common/fb_test.hex"}, fb);
+        $readmemh({DIR, "rtl/common/pal_test.hex"}, pal);
+        read_list({DIR, "sim/rect_stream.hex"}, 0);
+        read_list({DIR, "sim/rect_replies.hex"}, 1);
+        read_labels({DIR, "sim/rect_labels.txt"});
+        $readmemh({DIR, "sim/rect_fb.hex"}, exp_fb);
+        $readmemh({DIR, "sim/rect_pal.hex"}, exp_pal);
+        if (fb[FBN-1] === 8'bx || pal[255] === 24'bx || stream[0] === 16'bx ||
+            exp_fb[FBN-1] === 8'bx || exp_pal[255] === 24'bx) begin
+            $display("FAIL: tb_gpu_rect cannot read its files (run `.venv/bin/python sim/py/ref_rect.py sim` and Chapter 4.1's `ref_scanout.py --hex rtl/common`; run from build/sim)");
+            $finish;
+        end
+
+        repeat (10) @(negedge clk);
+        rst = 1'b0;
+        repeat (100) @(negedge clk);
+
+        p = 0;
+        while (stream[p] !== 16'hFFFF && !timeout) begin
+            if (stream[p] === 16'bx) begin
+                $display("FAIL: tb_gpu_rect sim/rect_stream.hex has no end marker");
+                $finish;
+            end
+            case (stream[p][15:12])
+                4'h0: send_byte(stream[p][7:0]);
+                4'h1: begin                                // fence
+                    n_fence = n_fence + 1;
+                    t0 = $time;
+                    while (n_got < stream[p][11:0] && !timeout) begin
+                        @(negedge clk);
+                        if ($time - t0 > 50_000_000) begin  // 50 ms and no reply
+                            $display("tb_gpu_rect: fence %0d waited 50 ms: %0d reply bytes so far, expected %0d. Waiting for the reply covering: %0s",
+                                     n_fence, n_got, stream[p][11:0], labels[n_got / 4]);
+                            timeout = 1'b1;
+                        end
+                    end
+                    if (!timeout) check_replies(stream[p][11:0]);
+                end
+                4'h2: case (stream[p][1:0])
+                    2'd0, 2'd1: honor = stream[p][0];
+                    2'd2: begin in_win = 1'b1; win_first = -1; win_last = -1; win_wr = 0; end
+                    2'd3: begin
+                        in_win = 1'b0;
+                        win_done = 1'b1;
+                        win_span = (win_first < 0) ? -1 : win_last - win_first + 1;
+                    end
+                endcase
+                default: ;
+            endcase
+            p = p + 1;
+        end
+
+        #200_000;
+        n_exp = 0;
+        while (replies[n_exp] !== 8'bx) n_exp = n_exp + 1;
+        check_replies(n_exp);
+
+        for (i = 0; i < FBN; i = i + 1)
+            if (fb[i] !== exp_fb[i]) begin
+                if (first_bad < 0) first_bad = i;
+                n_fb_err = n_fb_err + 1;
+            end
+        for (i = 0; i < 256; i = i + 1)
+            if (pal[i] !== exp_pal[i]) begin
+                if (n_pal_err == 0)
+                    $display("tb_gpu_rect: palette entry %0d is %h, expected %h", i, pal[i], exp_pal[i]);
+                n_pal_err = n_pal_err + 1;
+            end
+        if (first_bad >= 0)
+            $display("tb_gpu_rect: %0d framebuffer bytes wrong at the end; first at address %0d (x=%0d y=%0d): %h, expected %h",
+                     n_fb_err, first_bad, first_bad % 320, first_bad / 320, fb[first_bad], exp_fb[first_bad]);
+        if (win_done)
+            $display("tb_gpu_rect: full-screen FILL_RECT: %0d writes in %0d clocks from first to last (%0d allowed)",
+                     win_wr, win_span, WIN_MAX);
+
+        if (overflow_seen)
+            $display("FAIL: tb_gpu_rect (o_overflow rose: the FIFO dropped bytes)");
+        else if (timeout)
+            $display("FAIL: tb_gpu_rect (a reply never came, see above)");
+        else if (x_we != 0 || bad_wr != 0)
+            $display("FAIL: tb_gpu_rect (bad framebuffer/palette writes, see above)");
+        else if (rx_err != 0)
+            $display("FAIL: tb_gpu_rect (%0d malformed bytes on o_tx)", rx_err);
+        else if (n_got != n_exp || reply_err != 0)
+            $display("FAIL: tb_gpu_rect (replies: got %0d bytes, expected %0d, %0d of %0d FB_CRC replies wrong)",
+                     n_got, n_exp, reply_err, n_exp / 4);
+        else if (n_fb_err != 0 || n_pal_err != 0)
+            $display("FAIL: tb_gpu_rect (%0d framebuffer bytes and %0d palette entries differ from rect_fb.hex / rect_pal.hex)",
+                     n_fb_err, n_pal_err);
+        else if (!win_done || win_span < 0 || win_span > WIN_MAX)
+            $display("FAIL: tb_gpu_rect (the full-screen FILL_RECT took %0d clocks from first to last write, more than %0d: aim for one pixel per clock)",
+                     win_span, WIN_MAX);
+        else
+            $display("PASS: tb_gpu_rect (%0d bytes sent, %0d FB_CRC replies match, %0d pixel writes, full-screen fill %0d clocks for 76800 pixels)",
+                     n_sent, n_exp / 4, n_fb_wr, win_span);
+        $finish;
+    end
+
+    initial begin : watchdog
+        #400_000_000;                                     // 400 ms simulated
+        $display("FAIL: tb_gpu_rect watchdog timeout (sent %0d bytes; stuck waiting for o_ready?)", n_sent);
+        $finish;
+    end
+endmodule
+`default_nettype wire

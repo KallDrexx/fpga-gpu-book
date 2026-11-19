@@ -269,7 +269,7 @@ Run `make` in `projects/4.2-cmd/`. The reference build took 29 seconds:
 (The report's `tail -n 3` catches the `clk_sys` line twice. The numbers are the same.)
 
 - Compared with Step 4.1 (852 LUTs, 192 flip-flops), the command processor costs about 480 LUTs and 230 flip-flops, a fraction of a percent of the chip.
-- **`RAMB18E1` 1** is the 512-byte FIFO. In `build/yosys.log` it shows as `mapping memory top_artyz7.u_gpu.u_fifo.mem via $__XILINX_BLOCKRAM_TDP_`, next to the framebuffer's and the palette's lines from Step 4.1.
+- **`RAMB18E1` 1** is the 512-byte FIFO. In `build/yosys.log` it shows as `mapping memory top_artyz7.u_gpu.u_fifo.mem via $__XILINX_BLOCKRAM_TDP_`, next to Step 4.1's lines for the framebuffer (`BLOCKRAM_TDP`) and the palette (`LUTRAM_SDP`: the palette is still in LUTs, not block RAM).
 - **`clk_sys` reaches 169 MHz.** The CRC's 8-bit loop isn't the slowest path. In the reference build, the critical path is the compare of the 17-bit draw address with 76,799 that ends `CLEAR` and `FB_CRC`, driving many clock enables.
 
 ## 9. On the board
