@@ -14,8 +14,11 @@ FRAME_TESTS += patterns
 PYTHON  ?= python3
 FRAME_IVERILOG = iverilog -g2012 -Wall -Wno-timescale -y rtl/common -y sim
 
+# The list is read when the recipe runs, so FRAME_TESTS += lines work
+# whether they come before or after `include frame.mk`.
 .PHONY: frame
-frame: $(addprefix frame-,$(FRAME_TESTS))
+frame:
+	@set -e; for t in $(FRAME_TESTS); do $(MAKE) --no-print-directory frame-$$t; done
 
 frame-%:
 	@mkdir -p build
