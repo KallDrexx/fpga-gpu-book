@@ -145,6 +145,8 @@ The engine change is Section 5's two lines: one opcode in `S_EXEC` and one state
 
 **Chapters 4.2-4.4's testbenches** instantiate `uart_gpu` without the new ports, and `iverilog -Wall` warns that the input `i_flip_ack` is floating. That's expected: they never send `FLIP`, so the engine never enters `S_FLIP` and never reads it, and they still pass.
 
+**Chapter 4.1's `tb_frame_scanout` needs one edit.** It instantiates `fb_scanout` directly, so the new inputs float. A floating `i_fb_buf` sends its writes and read-backs to neither buffer, and the test fails. Add `.i_fb_buf(1'b0), .i_flip_req(1'b0)` to its `fb_scanout` instance: buffer 0 is then both the one it draws into and the one on screen, exactly the single-buffer setup it was written for, and it passes again.
+
 ## 7. The `VSYNC` pin
 
 Step 5.1 gives the MCU a `VSYNC` pin, so that it knows when a frame starts. The scanout side has everything it needs, so build it now:
