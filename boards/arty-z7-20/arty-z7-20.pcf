@@ -1,0 +1,175 @@
+# Digilent Arty Z7-20 (Zynq XC7Z020-1CLG400C) pin constraints.
+#
+# Derived from Digilent's Arty-Z7-20-Master.xdc (Rev.B):
+#   https://github.com/Digilent/digilent-xdc/blob/master/Arty-Z7-20-Master.xdc
+#
+# Every PL-side board pin is listed. -nowarn lets a design use only some of
+# them without warnings about the rest. Port names follow Digilent's master
+# XDC so their examples drop straight in.
+#
+# PCF has no IOSTANDARD. Every pin here is LVCMOS33 except the HDMI TMDS
+# clock/data pairs, which are TMDS_33 (noted in that section).
+
+# 125 MHz system clock (8.00 ns period), IO_L13P_T2_MRCC_35
+set_io -nowarn clk              H16
+
+# Slide switches
+set_io -nowarn sw[0]            M20
+set_io -nowarn sw[1]            M19
+
+# RGB LEDs (active high)
+set_io -nowarn led4_b           L15
+set_io -nowarn led4_g           G17
+set_io -nowarn led4_r           N15
+set_io -nowarn led5_b           G14
+set_io -nowarn led5_g           L14
+set_io -nowarn led5_r           M15
+
+# LEDs (active high)
+set_io -nowarn led[0]           R14
+set_io -nowarn led[1]           P14
+set_io -nowarn led[2]           N16
+set_io -nowarn led[3]           M14
+
+# Push buttons (high when pressed)
+set_io -nowarn btn[0]           D19
+set_io -nowarn btn[1]           D20
+set_io -nowarn btn[2]           L20
+set_io -nowarn btn[3]           L19
+
+# Pmod header JA (high-speed, differential-capable pairs)
+set_io -nowarn ja_p[1]          Y18
+set_io -nowarn ja_n[1]          Y19
+set_io -nowarn ja_p[2]          Y16
+set_io -nowarn ja_n[2]          Y17
+set_io -nowarn ja_p[3]          U18
+set_io -nowarn ja_n[3]          U19
+set_io -nowarn ja_p[4]          W18
+set_io -nowarn ja_n[4]          W19
+
+# Pmod header JB (high-speed, differential-capable pairs)
+set_io -nowarn jb_p[1]          W14
+set_io -nowarn jb_n[1]          Y14
+set_io -nowarn jb_p[2]          T11
+set_io -nowarn jb_n[2]          T10
+set_io -nowarn jb_p[3]          V16
+set_io -nowarn jb_n[3]          W16
+set_io -nowarn jb_p[4]          V12
+set_io -nowarn jb_n[4]          W13
+
+# Audio out
+set_io -nowarn aud_pwm          R18
+set_io -nowarn aud_sd           T17
+
+# Crypto chip SDA
+set_io -nowarn crypto_sda       J15
+
+# HDMI RX. clk/d pairs are TMDS_33; cec/hpd/scl/sda are LVCMOS33.
+set_io -nowarn hdmi_rx_cec      H17
+set_io -nowarn hdmi_rx_clk_n    P19
+set_io -nowarn hdmi_rx_clk_p    N18
+set_io -nowarn hdmi_rx_d_n[0]   W20
+set_io -nowarn hdmi_rx_d_p[0]   V20
+set_io -nowarn hdmi_rx_d_n[1]   U20
+set_io -nowarn hdmi_rx_d_p[1]   T20
+set_io -nowarn hdmi_rx_d_n[2]   P20
+set_io -nowarn hdmi_rx_d_p[2]   N20
+set_io -nowarn hdmi_rx_hpd      T19
+set_io -nowarn hdmi_rx_scl      U14
+set_io -nowarn hdmi_rx_sda      U15
+
+# HDMI TX. clk/d pairs are TMDS_33; cec/hpdn/scl/sda are LVCMOS33.
+set_io -nowarn hdmi_tx_cec      G15
+set_io -nowarn hdmi_tx_clk_n    L17
+set_io -nowarn hdmi_tx_clk_p    L16
+set_io -nowarn hdmi_tx_d_n[0]   K18
+set_io -nowarn hdmi_tx_d_p[0]   K17
+set_io -nowarn hdmi_tx_d_n[1]   J19
+set_io -nowarn hdmi_tx_d_p[1]   K19
+set_io -nowarn hdmi_tx_d_n[2]   H18
+set_io -nowarn hdmi_tx_d_p[2]   J18
+set_io -nowarn hdmi_tx_hpdn     R19
+set_io -nowarn hdmi_tx_scl      M17
+set_io -nowarn hdmi_tx_sda      M18
+
+# ChipKit outer digital header
+set_io -nowarn ck_io0           T14
+set_io -nowarn ck_io1           U12
+set_io -nowarn ck_io2           U13
+set_io -nowarn ck_io3           V13
+set_io -nowarn ck_io4           V15
+set_io -nowarn ck_io5           T15
+set_io -nowarn ck_io6           R16
+set_io -nowarn ck_io7           U17
+set_io -nowarn ck_io8           V17
+set_io -nowarn ck_io9           V18
+set_io -nowarn ck_io10          T16
+set_io -nowarn ck_io11          R17
+set_io -nowarn ck_io12          P18
+set_io -nowarn ck_io13          N17
+
+# ChipKit inner digital header
+set_io -nowarn ck_io26          U5
+set_io -nowarn ck_io27          V5
+set_io -nowarn ck_io28          V6
+set_io -nowarn ck_io29          U7
+set_io -nowarn ck_io30          V7
+set_io -nowarn ck_io31          U8
+set_io -nowarn ck_io32          V8
+set_io -nowarn ck_io33          V10
+set_io -nowarn ck_io34          W10
+set_io -nowarn ck_io35          W6
+set_io -nowarn ck_io36          Y6
+set_io -nowarn ck_io37          Y7
+set_io -nowarn ck_io38          W8
+set_io -nowarn ck_io39          Y8
+set_io -nowarn ck_io40          W9
+set_io -nowarn ck_io41          Y9
+
+# ChipKit outer analog header (A0-A5) as single-ended XADC inputs, 0-3.3V.
+# These are different FPGA pins from the digital ck_a0..ck_a5 below.
+set_io -nowarn Vaux1_0_v_n      D18
+set_io -nowarn Vaux1_0_v_p      E17
+set_io -nowarn Vaux9_0_v_n      E19
+set_io -nowarn Vaux9_0_v_p      E18
+set_io -nowarn Vaux6_0_v_n      J14
+set_io -nowarn Vaux6_0_v_p      K14
+set_io -nowarn Vaux15_0_v_n     J16
+set_io -nowarn Vaux15_0_v_p     K16
+set_io -nowarn Vaux5_0_v_n      H20
+set_io -nowarn Vaux5_0_v_p      J20
+set_io -nowarn Vaux13_0_v_n     G20
+set_io -nowarn Vaux13_0_v_p     G19
+
+# ChipKit outer analog header (A0-A5) as digital I/O
+set_io -nowarn ck_a0            Y11
+set_io -nowarn ck_a1            Y12
+set_io -nowarn ck_a2            W11
+set_io -nowarn ck_a3            V11
+set_io -nowarn ck_a4            T5
+set_io -nowarn ck_a5            U10
+
+# ChipKit inner analog header (A6-A11) as digital I/O.
+# The same pins serve as differential XADC inputs (0-1.0V) under Digilent's
+# names Vaux12_0_v_p/n (F19/F20), Vaux0_0_v_p/n (C20/B20) and
+# Vaux8_0_v_p/n (B19/A20). A pin can only carry one name here, so swap
+# these lines if you need the XADC names.
+set_io -nowarn ck_a6            F19
+set_io -nowarn ck_a7            F20
+set_io -nowarn ck_a8            C20
+set_io -nowarn ck_a9            B20
+set_io -nowarn ck_a10           B19
+set_io -nowarn ck_a11           A20
+
+# ChipKit SPI (also usable as digital I/O)
+set_io -nowarn ck_miso          W15
+set_io -nowarn ck_mosi          T12
+set_io -nowarn ck_sck           H15
+set_io -nowarn ck_ss            F16
+
+# ChipKit I2C
+set_io -nowarn ck_scl           P16
+set_io -nowarn ck_sda           P15
+
+# Misc. ChipKit
+set_io -nowarn ck_ioa           Y13

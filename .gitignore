@@ -1,1 +1,36 @@
+# --- Build output -----------------------------------------------------------
+# Root build/ (sim) and each project's build/ (bitstreams, netlists, logs)
+build/
+
+# Yosys ABC pass drops this in the working directory
+abc.history
+
+# Stray simulation output, in case a testbench is run outside build/sim
+*.vvp
+*.vcd
+*.fst
+*.lxt
+*.lxt2
+# GTKWave save files (*.gtkw) are intentionally NOT ignored; commit useful ones
+
+# Stray bitstreams / P&R output outside build/
+*.asc
+*.bin
+*.bit
+*.fasm
+*.frames
+
+# --- Python (golden models, frame-dump harness) ----------------------------
 __pycache__/
+*.py[cod]
+.venv/
+venv/
+.pytest_cache/
+.ipynb_checkpoints/
+
+# --- Editors / OS ------------------------------------------------------------
+.vscode/
+.idea/
+*.swp
+*~
+.DS_Store
