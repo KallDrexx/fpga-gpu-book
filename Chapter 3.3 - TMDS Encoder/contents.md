@@ -2,7 +2,7 @@
 
 On the Go Board, a pixel left the FPGA as nine slow wires of color plus two sync wires. HDMI has no color wires. It has four differential pairs, and three of them carry a serial bit stream at ten times the pixel clock: 250 Mbit/s each at 640x480. A bit stream that fast needs some care. The receiver must find word boundaries in it, recover the bits from edges, and pass it through AC-coupled inputs that block any DC level. The coding that gives it those properties is **TMDS** (transition-minimized differential signaling), defined in the DVI 1.0 specification. HDMI uses the same coding for its video, and a monitor's HDMI input accepts a plain DVI signal.
 
-In this chapter you write the TMDS encoder, the part that turns one 8-bit color value (or two control bits) into a 10-bit symbol every pixel clock. You also write a decoder, which reverses it, so a testbench can check that nothing is lost. Everything here runs in simulation. Step 3.4 adds the serializers and puts the result on the HDMI connector.
+In this chapter you write the TMDS encoder, the part that turns one 8-bit color value (or two control bits) into a 10-bit symbol every pixel clock. You also write a decoder, which reverses it, so a testbench can check that nothing is lost. Everything here runs in simulation. Chapter 3.4 adds the serializers and puts the result on the HDMI connector.
 
 By the end of this chapter you will have:
 
@@ -23,7 +23,7 @@ A DVI link (and HDMI's video part) has four TMDS pairs:
 | Channel 2 | red, 8 bits | C0 = CTL2, C1 = CTL3 |
 | Clock | the pixel clock | the pixel clock |
 
-Each data channel sends one **10-bit symbol per pixel clock**, least significant bit first. The clock pair runs at the pixel clock itself, 25 MHz here, and the receiver multiplies it by ten to sample the data. Step 3.4 sends it as the 10-bit pattern `1111100000` through a serializer like the others.
+Each data channel sends one **10-bit symbol per pixel clock**, least significant bit first. The clock pair runs at the pixel clock itself, 25 MHz here, and the receiver multiplies it by ten to sample the data. Chapter 3.4 sends it as the 10-bit pattern `1111100000` through a serializer like the others.
 
 Every pixel clock, each encoder gets three inputs from the video timing:
 
@@ -131,7 +131,7 @@ module tmds_encoder (
 );
 ```
 
-Step 3.4 instantiates this three times: blue with `i_ctrl = {vsync, hsync}`, green and red with `i_ctrl = 2'b00`.
+Chapter 3.4 instantiates this three times: blue with `i_ctrl = {vsync, hsync}`, green and red with `i_ctrl = 2'b00`.
 
 **Stage 1** is plain combinational logic: count the ones in `i_data` (a `for` loop adding bits works, and so does `$countones`), then build the chain with a `for` loop. Assign `q_m[0]` before the loop, since each bit uses the one before.
 
@@ -145,7 +145,7 @@ Step 3.4 instantiates this three times: blue with `i_ctrl = {vsync, hsync}`, gre
 
 - Stage 1 depends only on the input, so you can register `q_m` and pipeline it as deep as you like.
 - Stage 2 cannot be split. `cnt` for the next symbol depends on this one, so the N1 count, the decision and the update form a loop that must close in one clock.
-- **Register the output.** It feeds the serializer in Step 3.4, and a registered output keeps the encoder's logic delay away from that interface.
+- **Register the output.** It feeds the serializer in Chapter 3.4, and a registered output keeps the encoder's logic delay away from that interface.
 
 A common choice is two stages: register `q_m`, `de` and `ctrl` after stage 1, then register `o_tmds` and `cnt` after stage 2. That gives a latency of 2 clocks. One stage (latency 1) is fine too. The testbench measures the latency and accepts any fixed value from 1 to 8 clocks.
 

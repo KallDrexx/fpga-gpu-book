@@ -121,7 +121,7 @@ Two details deserve care.
 
 **The width.** The counter must hold values up to 12,499,999. Since 2²⁴ = 16,777,216, it needs 24 bits. Let the tools work this out from the parameter with `$clog2(HALF_PERIOD)` instead of typing 24, or the module will break the moment someone changes `CLK_HZ`.
 
-**The off-by-one.** A counter that goes 0, 1, ..., N−1 and then wraps visits N states, so it wraps every N clocks. If you compare against `N` instead of `N − 1`, every half period is one clock too long. On the board you would never see that (one part in 12.5 million), which is exactly why you want a testbench that can see it. Counting off-by-ones are the most common bug in this whole book; Step 1.2 has you hunting one in video timing.
+**The off-by-one.** A counter that goes 0, 1, ..., N−1 and then wraps visits N states, so it wraps every N clocks. If you compare against `N` instead of `N − 1`, every half period is one clock too long. On the board you would never see that (one part in 12.5 million), which is exactly why you want a testbench that can see it. Counting off-by-ones are the most common bug in this whole book; Chapter 1.2 has you hunting one in video timing.
 
 That is all the logic you need. Writing `blinker` is your first task: a counter register, a comparison, and an `o_led` register that flips.
 

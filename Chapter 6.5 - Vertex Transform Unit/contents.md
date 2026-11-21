@@ -81,7 +81,7 @@ The price is resolution far away. The depth changes by `65535 near / z_c^2` per 
 - `sx = 160 + 46 = 206`, `sy = 120 - (-18) = 138`;
 - `qd = round(65,535 x 64 / 19,200) = round(218.45) = 218`, `depth = 65,535 - 218 = 65,317`.
 
-`tb_vertex_sys` checks this vertex among others; `python host/gpu_model.py` runs a self-check with a similar one.
+`tb_vertex_sys` checks this vertex among others; `.venv/bin/python host/gpu_model.py` runs a self-check with a similar one.
 
 ## 3. The pipeline and what is shared
 

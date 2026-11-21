@@ -4,7 +4,7 @@ Text mode drew the screen from two memories: a map that says which character goe
 
 The game brings two new ideas. The map now has two users at once, the game writing and the video reading, and block RAM with two ports is what lets them share it. And Snake needs to put food somewhere unpredictable, which in hardware means a **linear-feedback shift register**.
 
-## From characters to tiles
+## 1. From characters to tiles
 
 A tile is an 8x8 picture, exactly like a glyph, but with **2 bits per pixel**. Each 2-bit value is a color index into a **4-color palette**. One tile can then mix a background and three colors: brick and mortar, a snake's body and its highlights, a red apple with a green stem.
 
@@ -46,7 +46,7 @@ This chapter supplies `tiles.hex`, 64 tiles of eight 16-bit words each, one tile
 
 Edit the art freely. The Python reference reads the same file, so the frame test keeps passing as long as the hardware draws what the file says.
 
-## Dual-port block RAM
+## 2. Dual-port block RAM
 
 In 2.2 nothing wrote the character RAM while the board ran. Now the game writes the map at any time while the video reads it every 16 pixels. Each `SB_RAM40_4K` on the iCE40 has a **read port and a separate write port**, each with its own address, its own clock and, for the write port, its own enable. Both run in the same clock edge. A RAM like this, with one port for writing and one for reading, is sometimes called "simple dual-port" or "pseudo dual-port". You get it by writing the two ports as two separate statements on one array:
 
@@ -65,7 +65,7 @@ What if both ports use the same address on the same clock? The read returns the 
 
 **When to write.** A write that lands while the beam is drawing that part of the screen shows half of the change in one frame and the rest in the next, the same tearing you avoided in Chapter 1.3. The fix is the same too: do the game's work at the start of vertical blanking. One Snake step writes a few cells in a few dozen clocks, and vertical blanking lasts 45 lines x 800 clocks = 36,000 clocks, so the screen is never caught half-updated.
 
-## Random numbers from an LFSR
+## 3. Random numbers from an LFSR
 
 Snake needs the food to appear somewhere the player cannot predict. Hardware cannot roll dice, but a **linear-feedback shift register** comes close at almost no cost. It is a shift register whose input bit is the XOR of a few of its own bits (the **taps**). With the right taps, an n-bit LFSR steps through all 2^n - 1 non-zero values in a fixed, scrambled order before it repeats. That is a **maximal-length** sequence. For 16 bits, one tap set is bits 15, 13, 12 and 10, which comes from the polynomial x^16 + x^14 + x^13 + x^11 + 1:
 
@@ -87,7 +87,7 @@ Build `lfsr` as its own small module. `tb_lfsr` checks that it starts at `SEED`,
 - **The LFSR must keep stepping while you search.** If it is stopped, the same occupied cell comes back forever and the game hangs. A tempting way to add randomness is to pause the LFSR while a button is held, so the player's timing shifts the sequence. That is fine, but only outside the search: the reference design first paused it whenever a button was down, and `tb_snake_game` timed out on the first move made with a button held during the food search.
 - **Read-during-write.** The search reads the game's copy of the map. If you start searching on the clock right after writing the new head cell, the read can still return that cell's old value, "empty", and the food lands on the head. Leave one clock between the last write and the first read, or check the candidate against the head position as well.
 
-## Snake's rules
+## 4. Snake's rules
 
 The playfield is the whole 40x30 map. Row 0, row 29, column 0 and column 39 are wall (tile 1). The snake moves one cell per tick and grows by one cell for each food it eats. The test checks every rule here, so read them as the specification.
 
@@ -118,7 +118,7 @@ The game must be testable without depending on how your LFSR works. Three things
 - **`i_food_load`** with `i_food_x`, `i_food_y` moves the food. On a one-clock pulse while the game is idle and running, the old food cell becomes empty and the food is drawn at (x, y). The testbench only loads food onto free cells. It uses this port to put the food on the snake's path, so the scripted moves are the same for any design. It still checks where *your* random food went each time: exactly one food tile on the map, on a free cell. One of its games grows the snake to 240 cells, so food placed without checking the map soon lands on the snake and fails.
 - **`o_busy`** tells the testbench when a step has finished.
 
-## The board
+## 5. The board
 
 Make `projects/2.3-snake/` with a `top_goboard.v` that connects:
 
@@ -139,7 +139,7 @@ On the board, check by hand:
 4. Running into the wall or the body stops the game; pressing any button starts a new one.
 5. Nothing tears or flickers when the snake moves.
 
-## Reading the resource report
+## 6. Reading the resource report
 
 For the reference design (the board top described above), yosys 0.52 and nextpnr-ice40 report:
 
@@ -157,7 +157,7 @@ yosys's `stat` gives 468 `SB_LUT4`, 152 `SB_CARRY`, 234 flip-flops and 7 `SB_RAM
 
 Check the log for lines like `mapping memory ... r_map via $__ICE40_RAM4K_`, one for each of your four memories. If one is missing, the memory became flip-flops. An early version of this chapter's reference read its map copy from two states with different addresses and wrote it from inside the state machine. yosys built it from about 2,400 flip-flops, and nextpnr gave up at 6,476 logic cells, 505% of the chip. Moving each memory's reads and writes into their own small `always` blocks, with one address mux per port, brought it back to one block RAM.
 
-Seven of sixteen block RAMs are now in use. The sprites in Chapter 2.4 need line buffers and sprite graphics from the same 8 KB, and Chapter 2.5 grows the map to 64x32.
+Seven of sixteen block RAMs are now in use. The sprites in Chapter 2.4 take their graphics from the same 8 KB, and Chapter 2.5 grows the map to 64x32.
 
 ## Testbench requirements
 

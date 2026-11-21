@@ -4,7 +4,7 @@ Pong drew everything with comparators: each object was a rectangle, and the colo
 
 The memories bring the main lesson of this chapter. Block RAM is synchronous: you give it an address on one clock edge and the data comes out after it. A pixel that needs two lookups in a row is ready two clocks after the beam position that asked for it, and everything that travels with the pixel has to be delayed to match.
 
-## How text mode works
+## 1. How text mode works
 
 Text mode is how the IBM PC, the Apple II and most terminals drew their screens. The screen is a grid of character **cells**. Memory holds one byte per cell, the character code, and the hardware turns codes into pixels as the beam scans.
 
@@ -36,7 +36,7 @@ The last row is empty and so is the right column. That gap is the spacing betwee
 
 **Inverse video.** The font has 128 glyphs (codes 0x00 to 0x7F), but the character RAM holds bytes. Use the spare bit the way many terminals did: a code with bit 7 set draws glyph `code & 0x7F` with foreground and background swapped. That gives you highlighted text and a block cursor (an inverse space) for one XOR gate.
 
-## The font file
+## 2. The font file
 
 This chapter supplies the font as `font8x8.hex`. The glyphs are Daniel Hepper's `font8x8_basic` (github.com/dhepper/font8x8), which is based on Marcel Sondaar's and IBM's public domain VGA fonts and is itself released into the **public domain**, so you can use and change it freely. The file covers codes 0x00 to 0x7F: all printable ASCII from 0x20 (space) to 0x7E (`~`). The control codes below 0x20 and 0x7F are blank. The original stores the leftmost pixel in bit 0; this file reverses each byte so that bit 7 is leftmost, which matches how you read the hex.
 
@@ -48,7 +48,7 @@ The format is the one `$readmemh` reads: hex numbers separated by whitespace, lo
 
 1,024 bytes in all. The Python reference for this chapter reads the same file, so if you edit a glyph, the hardware and the reference change together.
 
-## Block RAM with `$readmemh`
+## 3. Block RAM with `$readmemh`
 
 The iCE40 HX1K has 16 block RAMs called `SB_RAM40_4K`, 4 Kbit each. Each can be shaped as 256x16, 512x8, 1024x4 or 2048x2. You rarely instantiate them by hand. Instead you write an array in a way yosys recognises, and it **infers** the block RAM for you. The pattern for a ROM is:
 
@@ -80,7 +80,7 @@ initial if (TEXT_FILE != "") $readmemh(TEXT_FILE, chars);
 
 Nothing in this chapter writes the RAM while the board runs, but the testbench uses the write port to load its screens, and Chapter 2.3 builds on it.
 
-## Pipeline alignment
+## 4. Pipeline alignment
 
 Now follow one pixel through the hardware. On the clock where `vga_timing` says the beam is at `(x, y)`:
 
@@ -106,11 +106,11 @@ A small extra point: during blanking, `x` runs up to 799 and `y` up to 524, so t
 
 **Why the frame dump catches what your eye doesn't.** If you delay `de` by one clock instead of two, every character moves one real pixel to the right: half a logical pixel. On a monitor this is almost invisible. The frame dump compares at full 640x480 resolution, so it shows up at once as thousands of differing pixels. This is the main reason the test for this chapter exists.
 
-## Colors and blanking
+## 5. Colors and blanking
 
 Use two 9-bit parameters, `FG` and `BG`, packed as `{r, g, b}` with 3 bits each (so `9'o777` is white and `9'o001` is a dark blue). Output `FG` where the glyph bit (after the inverse XOR) is 1 and `BG` where it is 0. While the delayed `de` is low, output black. A background that is not black makes this easy to check: you can see exactly where the visible area ends.
 
-## The board
+## 6. The board
 
 Make a project `projects/2.2-text/` with a `top_goboard.v` that connects `vga_timing` to `text_mode`, ties the write port off (`i_wr_en = 0`), and registers the delayed `hsync`, `vsync` and color for one more clock before the pins, as in Phase 1. Since yosys runs inside the project directory, pass `FONT_FILE("../../rtl/common/font8x8.hex")` and a `TEXT_FILE` in the project, such as `screen.hex`.
 
@@ -137,7 +137,7 @@ On the board, check by hand:
 
 **Try it (optional):** connect your Chapter 0.4 `uart_rx` to the write port with a cursor that advances after each byte, and type on the screen from a serial terminal.
 
-## Reading the resource report
+## 7. Reading the resource report
 
 For the reference design (the board top described above), yosys 0.52 and nextpnr-ice40 report:
 

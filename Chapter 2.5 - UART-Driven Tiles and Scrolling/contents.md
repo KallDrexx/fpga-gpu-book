@@ -1,10 +1,10 @@
 # Chapter 2.5 - UART-Driven Tiles and Scrolling
 
-Until now every picture on the Go Board came from inside the FPGA: a map loaded from a hex file, or a game written in Verilog. This chapter hands the screen to the PC. The tile map, the tile graphics, the palette, the sprite positions and a new pair of **scroll registers** all become registers that a Python script writes over the UART, using the packet protocol you built in Step 0.5.
+Until now every picture on the Go Board came from inside the FPGA: a map loaded from a hex file, or a game written in Verilog. This chapter hands the screen to the PC. The tile map, the tile graphics, the palette, the sprite positions and a new pair of **scroll registers** all become registers that a Python script writes over the UART, using the packet protocol you built in Chapter 0.5.
 
 The payoff is the idea this whole phase has been building towards. The script sends a 64x32 map once, about half a second of traffic. After that it moves the picture at 60 frames per second by sending **two scroll bytes per frame**. The FPGA does the rest as the beam scans. Sending changes instead of pixels is how every later part of this project talks to the GPU, from the SPI link in Phase 5 to the 3D commands in Phase 6.
 
-## Hardware scrolling
+## 1. Hardware scrolling
 
 The map grows from 40x30 cells to **64x32 cells**, 512x256 logical pixels, larger than the 320x240 screen. The screen becomes a window onto the map, and two registers, **scroll X** (0 to 511) and **scroll Y** (0 to 255), say where the window's top-left corner sits. Screen pixel (lx, ly) shows map pixel
 
@@ -38,21 +38,21 @@ There is a second change to the tile layer, and the reason for it is in the reso
 
 The NES did it the other way round, and so should you. Each layer produces only a **color index**: the tile layer 2 bits, the sprite layer 2 bits. The mixer picks one index, `{1, sprite}` when a sprite pixel is opaque and `{0, tile}` otherwise, and a **single palette lookup** at the end of the pipeline turns that 3-bit index into a color. An 8-entry table read once per clock is a block RAM, and a block RAM costs no logic cells. So `scroll_tiles`, this chapter's tile layer, outputs `o_pix[1:0]` instead of red, green and blue, and the colors appear only at the very end. The read is registered like any block RAM read, so it adds one clock of latency; delay the syncs to match.
 
-## Growing the register protocol
+## 2. Growing the register protocol
 
-Step 0.5 gave you two packets, `W addr data` and `R addr`, and 16 eight-bit registers. That is enough to light LEDs, but this chapter needs 2,048 map bytes, 1,024 bytes of tile graphics, a palette, four sprites and the scroll offsets. There are two standard ways to reach that much memory through a small protocol:
+Chapter 0.5 gave you two packets, `W addr data` and `R addr`, and 16 eight-bit registers. That is enough to light LEDs, but this chapter needs 2,048 map bytes, 1,024 bytes of tile graphics, a palette, four sprites and the scroll offsets. There are two standard ways to reach that much memory through a small protocol:
 
-- **A wider address.** Change the packet to `W addr_hi addr_lo data`. Every byte becomes directly addressable, and the decoder is a compare on 16 bits. The price is 4 bytes on the wire for every byte stored, and every host script from Step 0.5 needs a new packet format.
+- **A wider address.** Change the packet to `W addr_hi addr_lo data`. Every byte becomes directly addressable, and the decoder is a compare on 16 bits. The price is 4 bytes on the wire for every byte stored, and every host script from Chapter 0.5 needs a new packet format.
 - **An address register and a data port.** Keep the packets exactly as they are. Two registers hold a pointer into a larger space, and writing a third register stores the byte at the pointer and **increments the pointer**. A bulk load is then "set the pointer once, then write DATA again and again": 3 bytes on the wire per byte stored. This is how the NES picture processor (PPUADDR and PPUDATA) and the TMS9918 and Sega video chips were loaded, and it is the choice here.
 
 ### The register map
 
-The 16 registers of Step 0.5, extended:
+The 16 registers of Chapter 0.5, extended:
 
 | Addr | Name | Meaning |
 | --- | --- | --- |
-| 0x00 | LEDS | bits 3:0 drive the four LEDs, as in Step 0.5 |
-| 0x01 | SEG | shown in hex on the 7-segment display, as in Step 0.5 |
+| 0x00 | LEDS | bits 3:0 drive the four LEDs, as in Chapter 0.5 |
+| 0x01 | SEG | shown in hex on the 7-segment display, as in Chapter 0.5 |
 | 0x02 | SCROLL_X | scroll X, bits 7:0 |
 | 0x03 | SCROLL_Y | scroll Y, 0 to 255. Writing it also **commits** the frame's update (see below) |
 | 0x04 | SCROLL_XH | bit 0 is scroll X bit 8 |
@@ -83,9 +83,9 @@ One packet layer, three kinds of destination: a decoder on the pointer sends eac
 
 ### Is the FIFO still needed?
 
-In Step 0.5 the FIFO absorbed bursts while the parser was busy. Here the parser takes a byte in two or three clocks, and a byte arrives every 2,170 clocks at 115,200 baud, so the FIFO never holds more than one byte. The one place the parser waits is a `READ` reply while `uart_tx` is still sending the previous reply, and since every reply needs two incoming bytes, the transmitter is always free in time. So this chapter replaces the FIFO with a **one-byte holding register**: set on the receiver's `o_valid`, cleared when the parser takes the byte. The resource report shows why that matters.
+In Chapter 0.5 the FIFO absorbed bursts while the parser was busy. Here the parser takes a byte in two or three clocks, and a byte arrives every 2,170 clocks at 115,200 baud, so the FIFO never holds more than one byte. The one place the parser waits is a `READ` reply while `uart_tx` is still sending the previous reply, and since every reply needs two incoming bytes, the transmitter is always free in time. So this chapter replaces the FIFO with a **one-byte holding register**: set on the receiver's `o_valid`, cleared when the parser takes the byte. The resource report shows why that matters.
 
-## When writes take effect
+## 3. When writes take effect
 
 Chapter 1.3 taught that state which changes during a frame tears the picture. This chapter has two kinds of state, and they need different rules.
 
@@ -107,7 +107,7 @@ So a host always ends a frame's update with SCROLL_Y, even when only a sprite mo
 
 **Where the shadows live.** The scroll shadows are 17 flip-flops. The sprite shadows would be 100, and flip-flops are the budget that runs out first on this chip (see below). Since the shadow copy is only written by the parser and read by the copy, one byte at a time, it can live in a small block RAM, laid out like the VRAM region it belongs to. At commit time a 5-bit counter walks the 32 bytes and loads the active sprite registers, one byte per clock, in 32 clocks of the 36,000 that vertical blanking lasts. The active registers stay flip-flops, because the sprite engine from 2.4 compares all four x positions with the beam on every pixel. Copying every frame without the commit flag, at any point inside blanking, is also a valid design; the tests accept both, and every group of writes they send ends with SCROLL_Y and completes inside the visible lines.
 
-## The memory budget
+## 4. The memory budget
 
 The plan for this step promised "2 KB map, 1 KB tile graphics, well inside the 8 KB budget". Here is the whole budget, counted the way the chip counts it, in 512-byte `SB_RAM40_4K` blocks:
 
@@ -122,7 +122,7 @@ The plan for this step promised "2 KB map, 1 KB tile graphics, well inside the 8
 
 Two things in this table are worth noticing. The map needs 16 Kbit, four blocks, but yosys builds it from three. The video reads only bits 5:0 of each map byte, so yosys drops the two reserved bits from the memory and stores 2,048 x 6 bits. When you use bits 7:6 for something (flip bits, a second palette), the fourth block comes back. And the palette and the sprite table use 16 and 32 bytes of VRAM but cost a whole 512-byte block each. Block RAM comes in fixed-size pieces; a tiny memory is cheap in logic but not in blocks. With seven blocks free, memory is not what limits this design. Logic is.
 
-## Does 60 Hz fit through 115,200 baud?
+## 5. Does 60 Hz fit through 115,200 baud?
 
 A UART byte is 10 bits on the wire (start, 8 data, stop), so 115,200 baud carries **11,520 bytes per second**, or **192 bytes per frame** at 60 frames per second. Each packet is 3 bytes:
 
@@ -138,13 +138,13 @@ The scroll-only update uses 3% of the link; a frame could carry thirty times mor
 
 One more detail shows up on the monitor. The Go Board's frame rate is 25 MHz / 420,000 = **59.52 Hz**, not 60. A script that sends exactly 60 updates per second sends one extra update about every two seconds, and that frame jumps 2 pixels instead of 1. You can see it as a tiny hitch in a slow scroll. `--fps 59.52` gets closer, but the PC's clock and the board's crystal still drift apart. The real fix is to synchronize the host to the display, for example with a frame counter register the host polls, or a byte the FPGA sends at every vertical blank. That is a good exercise, and it is what the Phase 5 protocol does.
 
-## The board
+## 6. The board
 
 Make `projects/2.5-scroll/` with a `top_goboard.v` that connects:
 
 - `vga_timing` to `uart_ppu` (pass `TILE_FILE("../../rtl/common/tiles.hex")` and `SPRITE_FILE("../../rtl/common/sprites.hex")`, `CLK_HZ(25_000_000)`, `BAUD(115_200)`);
 - `i_UART_RX` and `o_UART_TX` to the UART pins;
-- `o_reg0[3:0]` to the four LEDs and `o_reg1` to the 7-segment display through two `hex_to_7seg`s, as in Step 0.5.
+- `o_reg0[3:0]` to the four LEDs and `o_reg1` to the 7-segment display through two `hex_to_7seg`s, as in Chapter 0.5.
 
 As before, register `hsync`, `vsync` and the color one more clock before the pins.
 
@@ -152,7 +152,7 @@ Inside `uart_ppu` you need: `uart_rx`, the holding register, the parser and regi
 
 Copy `scroll_demo.py` from this chapter to `host/`. With the board programmed, run it and check by hand:
 
-1. `python3 host/scroll_demo.py /dev/ttyUSB1` prints `map drawn: 6306 bytes in 0.55 s` (about half a second), and LEDs 1 and 3 are lit: the script's link check wrote LEDS = 0x5 and read it back.
+1. `.venv/bin/python host/scroll_demo.py /dev/ttyUSB1` prints `map drawn: 6306 bytes in 0.55 s` (about half a second), and LEDs 1 and 3 are lit: the script's link check wrote LEDS = 0x5 and read it back.
 2. The screen shows a starfield with block labels (two digits in every 8x4 block of the map), a snake, and the ship sprite in the middle, and the map scrolls diagonally, one pixel per frame, smoothly.
 3. The wall around the map's edge slides past without a jump, with the map continuing seamlessly on the other side: that is the wraparound. A seam that skips a row or a column means the wrap is wrong.
 4. The ship stays in the middle while the map moves under it, and the stars show through its transparent pixels.
@@ -162,7 +162,7 @@ Copy `scroll_demo.py` from this chapter to `host/`. With the board programmed, r
 
 `scroll_demo.py` is short and worth reading: it builds the setup as one long byte string (palette, map, sprites, each a pointer and a run of DATA packets), sends it once, then loops on a `time.perf_counter()` deadline, sending SCROLL_XH only when bit 8 changes and SCROLL_Y last.
 
-## Reading the resource report
+## 7. Reading the resource report
 
 For the reference design (the board top above, without the FIFO), yosys 0.52 and nextpnr-ice40 report:
 
@@ -186,7 +186,7 @@ yosys's `stat` gives 623 `SB_LUT4`, 103 `SB_CARRY`, 491 flip-flops and 9 `SB_RAM
 | `uart_rx` + `uart_tx` | 79 | 15 | 53 | 0 |
 | `vga_timing` | 29 | 47 | 20 | 0 |
 
-This design did not fit at first, and the story of getting it to fit is the real lesson of the report. The first version kept Step 0.5's FIFO, held the palette and the sprite shadows in flip-flops, and looked up colors in each layer. It needed 1,261 logic cells, 98% of the chip, and nextpnr stopped with `Unable to find legal placement for all cells`. Moving the sprite shadows into a block RAM, dropping the FIFO and a few smaller savings brought it to 1,052 cells (82%), and placement *still* failed. Only after the palette moved into a block RAM, behind the index mix, did it drop to 944 cells and place, with timing to spare. Putting the FIFO back into that final design gives 1,056 cells and the same placement failure.
+This design did not fit at first, and the story of getting it to fit is the real lesson of the report. The first version kept Chapter 0.5's FIFO, held the palette and the sprite shadows in flip-flops, and looked up colors in each layer. It needed 1,261 logic cells, 98% of the chip, and nextpnr stopped with `Unable to find legal placement for all cells`. Moving the sprite shadows into a block RAM, dropping the FIFO and a few smaller savings brought it to 1,052 cells (82%), and placement *still* failed. Only after the palette moved into a block RAM, behind the index mix, did it drop to 944 cells and place, with timing to spare. Putting the FIFO back into that final design gives 1,056 cells and the same placement failure.
 
 Why does a design at 82% not place? Because a logic cell is not a free-standing unit. The HX1K's cells come in tiles of eight, and **all eight flip-flops in a tile share one clock enable and one set/reset signal**. A register with its own enable, one per palette entry or per sprite field, needs a tile of its own for its flip-flops, however few there are; the other cells in that tile can only take logic without flip-flops. A design full of small registers with different enables runs out of tiles long before it runs out of cells. The practical limit on this chip is well below 100%; in this design, about 80% was already too much. When nextpnr fails like this, count your flip-flops and their enables before you look anywhere else, and move anything that is read one entry at a time into block RAM.
 
@@ -205,7 +205,7 @@ Provide in `rtl/common/`:
 - **`uart_ppu.v`**: `uart_ppu #(CLK_HZ = 25_000_000, BAUD = 115_200, TILE_FILE = "tiles.hex", SPRITE_FILE = "sprites.hex")`.
   - Inputs: `i_clk`, `i_rx` (serial in, idle high), `i_x[9:0]`, `i_y[9:0]`, `i_de`, `i_hsync`, `i_vsync`.
   - Outputs: `o_tx` (serial out), `o_hsync`, `o_vsync`, `o_de` (latency 1 to 15), `o_red[2:0]`, `o_grn[2:0]`, `o_blu[2:0]` (black while `o_de` is low), `o_reg0[7:0]`, `o_reg1[7:0]` (registers 0x00 and 0x01).
-  - Step 0.5 packets and the register and VRAM maps above; sprites as in Chapter 2.4 (16x16, `sprites.hex`, value 0 transparent, sprite 0 in front, clipped at the edges), drawn over the scrolled tiles with palette entries 5-7.
+  - Chapter 0.5 packets and the register and VRAM maps above; sprites as in Chapter 2.4 (16x16, `sprites.hex`, value 0 transparent, sprite 0 in front, clipped at the edges), drawn over the scrolled tiles with palette entries 5-7.
   - Must work at 32 clocks per bit (the test runs at `BAUD = 781_250`). `o_reg0` and `o_reg1` must change within 4 bit times of a packet's last byte, and a read reply must start within 200 bit times.
   - A group of writes ending with SCROLL_Y that completes inside the visible lines of a frame must not change that frame, and must show in the next one.
 - `vga_timing.v` (Chapter 1.1), `uart_rx.v` and `uart_tx.v` (Chapter 0.4), `tiles.hex` (Chapter 2.3), `sprites.hex` (Chapter 2.4), and whatever modules your `uart_ppu` uses.

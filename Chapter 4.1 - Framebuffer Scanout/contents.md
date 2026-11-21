@@ -2,7 +2,7 @@
 
 Everything you have put on a screen so far was computed while the beam passed: Pong's paddles were compares against the beam position, and the tile engine looked up a tile and a row just in time for each pixel. That works for a few objects, but a line or a triangle can't be drawn that way. From now on the picture lives in memory. A **framebuffer** holds one byte for every pixel. A drawing engine writes into it whenever it likes, and a **scanout reader** reads it out in beam order, 60 times a second, whether or not anything changed.
 
-This chapter builds the read side: the framebuffer RAM, preloaded with a test image, the scanout reader, and the palette that turns each byte into a color. Step 4.2 adds the drawing side.
+This chapter builds the read side: the framebuffer RAM, preloaded with a test image, the scanout reader, and the palette that turns each byte into a color. Chapter 4.2 adds the drawing side.
 
 By the end of this chapter you will have:
 
@@ -39,15 +39,15 @@ A block's shape is set by its port width. The useful 36 Kbit shapes are 32K x 1,
 
     76,800 / 4,096 = 18.75  ->  19 RAMB36E1 per buffer (14% of the chip)
 
-Two buffers for Step 4.5 take 38 blocks, about a quarter of the chip. Phase 5's tile and sprite memories and Phase 6's depth buffer fit in the rest.
+Two buffers for Chapter 4.5 take 38 blocks, about a quarter of the chip. Phase 5's tile and sprite memories and Phase 6's depth buffer fit in the rest.
 
 ## 2. The framebuffer RAM
 
 ### One port per clock
 
-The drawing engine runs on the 50 MHz `clk_sys` from Step 3.2, so that it can draw one pixel per clock with time to spare. Scanout must run on the 25 MHz `clk_pix`, one pixel per clock, because that is the rate the monitor takes them. The memory sits between two clock domains.
+The drawing engine runs on the 50 MHz `clk_sys` from Chapter 3.2, so that it can draw one pixel per clock with time to spare. Scanout must run on the 25 MHz `clk_pix`, one pixel per clock, because that is the rate the monitor takes them. The memory sits between two clock domains.
 
-Step 2.5's `uart_ppu` kept everything in one clock and wrote VRAM in the same domain as the reader. Here, block RAM solves the problem for you: each `RAMB36E1` has two completely independent ports, A and B, each with its own clock, address, data and write enable. That is a **true dual-port** RAM. The memory cells are shared, but no signal crosses from one clock domain to the other in the fabric, so you need no synchronizers. The only thing to avoid is writing an address on one port in the same instant the other reads it: the write still succeeds, but that one read returns an invalid byte (UG473's word for it). For a framebuffer that is a single wrong pixel for one frame, which no one can see. Step 4.5's double buffering removes even that.
+Chapter 2.5's `uart_ppu` kept everything in one clock and wrote VRAM in the same domain as the reader. Here, block RAM solves the problem for you: each `RAMB36E1` has two completely independent ports, A and B, each with its own clock, address, data and write enable. That is a **true dual-port** RAM. The memory cells are shared, but no signal crosses from one clock domain to the other in the fabric, so you need no synchronizers. The only thing to avoid is writing an address on one port in the same instant the other reads it: the write still succeeds, but that one read returns an invalid byte (UG473's word for it). For a framebuffer that is a single wrong pixel for one frame, which no one can see. Chapter 4.5's double buffering removes even that.
 
 Give the two ports these jobs:
 
@@ -56,7 +56,7 @@ Give the two ports these jobs:
 | A | `clk_sys` 50 MHz | the drawing engine (4.2-4.8), `FB_CRC` (4.2) | writes, and reads back |
 | B | `clk_pix` 25 MHz | the scanout reader | reads only |
 
-Port A needs its read path now even though nothing uses it yet: Step 4.2's `FB_CRC` command reads the whole buffer through it to checksum it.
+Port A needs its read path now even though nothing uses it yet: Chapter 4.2's `FB_CRC` command reads the whole buffer through it to checksum it.
 
 ### Writing it so yosys infers block RAM
 
@@ -109,7 +109,7 @@ It simulates perfectly, and yosys does not put it in block RAM. Xilinx documents
 
 `TDP` is true dual-port. `LUTRAM` in that line means the inference failed.
 
-**Unused ports disappear.** If you tie port A's write enable to 0 and leave `o_rdata_a` unconnected, yosys removes port A and treats the framebuffer as a ROM. A test build like that used 17 blocks and turned the palette into plain logic. It works, but it isn't the RAM that Step 4.2 needs, so this chapter's top keeps port A alive (Section 8).
+**Unused ports disappear.** If you tie port A's write enable to 0 and leave `o_rdata_a` unconnected, yosys removes port A and treats the framebuffer as a ROM. A test build like that used 17 blocks and turned the palette into plain logic. It works, but it isn't the RAM that Chapter 4.2 needs, so this chapter's top keeps port A alive (Section 8).
 
 ## 3. The scanout reader
 
@@ -150,11 +150,11 @@ Give the sync delay registers an initial value of 1 (syncs are active low) and `
 
 256 entries of 24 bits is 6,144 bits: small. Make it its own little RAM, `palette.v`, with the same shape as the framebuffer but simpler:
 
-- a write port on `clk_sys` (`i_wr_en`, `i_wr_addr[7:0]`, `i_wr_data[23:0]`), for Step 4.2's `SET_PALETTE` command. It is unused by this chapter's hardware but tested in simulation,
+- a write port on `clk_sys` (`i_wr_en`, `i_wr_addr[7:0]`, `i_wr_data[23:0]`), for Chapter 4.2's `SET_PALETTE` command. It is unused by this chapter's hardware but tested in simulation,
 - a registered read port on `clk_pix` (`i_rd_addr[7:0]`, `o_rd_data[23:0]`),
 - `INIT_FILE` for `$readmemh`. Each line is one entry, six hex digits `RRGGBB`.
 
-Red is bits 23:16, green 15:8 and blue 7:0, in the file and on the port. Keep that order everywhere: the `SET_PALETTE` packet and the Python model in Step 4.2 use it too.
+Red is bits 23:16, green 15:8 and blue 7:0, in the file and on the port. Keep that order everywhere: the `SET_PALETTE` packet and the Python model in Chapter 4.2 use it too.
 
 Left alone, yosys puts this RAM in one `RAMB18E1`, in simple dual-port mode (one write port, one read port, up to 36 bits wide). That builds, but in the reference build nextpnr reported a 0.04 ns hold violation on that block's write data, with a flip-flop placed right next to it (nextpnr-xilinx doesn't repair hold violations). Two other placement seeds passed. A memory this small is just as happy in LUTs, so ask for distributed RAM:
 
@@ -166,7 +166,7 @@ Yosys then uses 32 `RAM64M` cells (128 LUTs), writing on `clk_sys` and reading t
 
 ## 5. `fb_scanout`: putting it together
 
-`fb_scanout` holds one `framebuffer`, one `palette` and the reader. Its ports are the interface Steps 4.2-4.5 build on:
+`fb_scanout` holds one `framebuffer`, one `palette` and the reader. Its ports are the interface Chapters 4.2-4.5 build on:
 
 ```verilog
 module fb_scanout #(
@@ -242,15 +242,15 @@ When `compare.py` reports a mismatch, it names the first bad pixel. Open `build/
 
 ## 8. The Arty top
 
-`projects/4.1-scanout/top_artyz7.v` is Step 3.4's color-bar top with `color_bars` replaced:
+`projects/4.1-scanout/top_artyz7.v` is Chapter 3.4's color-bar top with `color_bars` replaced:
 
 - `clk_gen` makes `clk_pix`, `clk_ser` and, for the first time, uses `clk_sys`,
 - `vga_timing` on `clk_pix` feeds `fb_scanout`, whose delayed syncs and 8-bit color go straight to `hdmi_tx`,
 - `led[0]` shows `o_locked`.
 
-`fb_scanout`'s outputs are already registered, so the top needs no extra stage before `hdmi_tx`. If yours ends in a palette read, add one register stage in the top, like Step 3.4.
+`fb_scanout`'s outputs are already registered, so the top needs no extra stage before `hdmi_tx`. If yours ends in a palette read, add one register stage in the top, like Chapter 3.4.
 
-Yosys runs in the project directory, so the hex paths are relative to it: `FB_FILE("../../rtl/common/fb_test.hex")` and `PAL_FILE("../../rtl/common/pal_test.hex")`, the same rule as Step 3.5's tile files. A wrong path makes yosys stop with an error.
+Yosys runs in the project directory, so the hex paths are relative to it: `FB_FILE("../../rtl/common/fb_test.hex")` and `PAL_FILE("../../rtl/common/pal_test.hex")`, the same rule as Chapter 3.5's tile files. A wrong path makes yosys stop with an error.
 
 To keep the draw port alive (Section 2) and give it a hardware check, add a few lines on `clk_sys`. Bring `sw[0]` and `sw[1]` in through `synchronizer`s clocked by `clk_sys`, then:
 
@@ -287,7 +287,7 @@ Run `make` in `projects/4.1-scanout/`. The reference build took 25 seconds:
 
 Connect the monitor to HDMI OUT, set both switches down (toward the buttons) and run `make prog`. Then check:
 
-1. The monitor reports 640x480 at 60 Hz, as in Step 3.4, and LD0 is lit.
+1. The monitor reports 640x480 at 60 Hz, as in Chapter 3.4, and LD0 is lit.
 2. Diagonal bands of blue, green and orange fill the screen. The 1-pixel white border shows on all four edges. If your monitor crops (overscan), use its "1:1" or "just scan" setting.
 3. The corner markers are red top left, green top right, blue bottom left and yellow bottom right. If red and blue are swapped, check the channel order between the palette and `hdmi_tx`, which simulation would also have caught.
 4. The checkerboard near the top left is a fine, even pattern with no smearing, and the 16 bars at the bottom left are black, white, red, green, blue, yellow, cyan, magenta, grey, orange, navy, dark green, maroon, mint, lavender and brown.

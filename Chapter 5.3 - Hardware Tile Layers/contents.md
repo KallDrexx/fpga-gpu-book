@@ -77,7 +77,7 @@ The rules:
 - **Layer numbers.** Only 0 and 1 exist. For a layer above 1, `SET_SCROLL` and `WRITE_TILE_MAP` do nothing. The length was right, so no flag is set (the same rule as a `BLIT` of an unknown asset).
 - **Off the end.** `UPLOAD_TILES` bytes for addresses 16,384 and up are dropped, byte by byte, and so are `WRITE_TILE_MAP` entries from 4,096 up. They must not wrap to the start of the RAM, or a slightly wrong offset would corrupt tile 0.
 - **Wrong lengths.** `SET_TILE_LAYER` needs exactly 1 and `SET_SCROLL` exactly 5. `UPLOAD_TILES` needs at least 2, and `WRITE_TILE_MAP` at least 3 and an odd number (whole entries). Anything else is skipped whole and sets `BAD_LEN`.
-- **Capability bit 4** (`TILES`). `gpu_link` now answers `GET_INFO` with `47 01 1F 02 40 01 F0 00 ER`. Chapter 4's `uart_gpu` keeps `0F 00`: its engine accepts the new commands, but nothing is connected to its tile ports (section 5).
+- **Capability bit 4** (`TILES`). `gpu_link` now answers `GET_INFO` with `47 01 1F 02 40 01 F0 00 ER`. Phase 4's `uart_gpu` keeps `0F 00`: its engine accepts the new commands, but nothing is connected to its tile ports (section 5).
 
 ### When a command takes effect
 

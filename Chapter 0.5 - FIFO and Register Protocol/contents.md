@@ -2,7 +2,7 @@
 
 Chapter 0.4 gave the board a serial link. Right now that link carries bytes that mean nothing; the echo just sends them back. This chapter gives the bytes meaning. You will put a FIFO behind the UART receiver, build a small parser that reads two kinds of packets out of it, `WRITE addr data` and `READ addr`, and connect the parser to a bank of registers. Register 0 drives the LEDs, so the PC can switch them on and off. Register 1 drives the display.
 
-This is the start of the GPU's command port. In Step 2.5 these registers become the tile map, the palette and the scroll offsets. In Phase 4 the parser grows into a command processor, and in Phase 5 an SPI link feeds the same FIFO. The FIFO also introduces the FPGA's **block RAM**, the memory every later video chapter depends on.
+This is the start of the GPU's command port. In Chapter 2.5 these registers become the tile map, the palette and the scroll offsets. In Phase 4 the parser grows into a command processor, and in Phase 5 an SPI link feeds the same FIFO. The FIFO also introduces the FPGA's **block RAM**, the memory every later video chapter depends on.
 
 By the end of this chapter you will have:
 
@@ -33,7 +33,7 @@ The HX1K has **16 block RAMs**, each an `SB_RAM40_4K` cell holding **4 Kbit**, f
 | | 1,024 x 4 |
 | deepest | 2,048 x 2 |
 
-A 512-entry, 8-bit FIFO fills exactly one block. A 16-entry FIFO would also take a whole block, because the block is the unit; there is no saving in making it smaller. A 1,024 x 8 memory takes two blocks, and a 513 x 8 one takes two as well. Keep power-of-two sizes in mind when you budget memory, and remember the total: 8 KB is all there is on this board. Step 2.5 spends 3 KB of it on a tile map and tile graphics.
+A 512-entry, 8-bit FIFO fills exactly one block. A 16-entry FIFO would also take a whole block, because the block is the unit; there is no saving in making it smaller. A 1,024 x 8 memory takes two blocks, and a 513 x 8 one takes two as well. Keep power-of-two sizes in mind when you budget memory, and remember the total: 8 KB is all there is on this board. Chapter 2.5 spends 3 KB of it on a tile map and tile graphics.
 
 The most important property of block RAM is that **reading is synchronous**. You present an address before a clock edge, and the data appears after that edge. There is no way to look up a word combinationally and use it in the same clock. That one clock of latency shapes every design that uses block RAM, starting with the FIFO's read side and the parser in Section 5.
 
@@ -137,7 +137,7 @@ A few design decisions are hidden in this small table:
 - **Binary, fixed-length packets.** Text commands (`"W 00 0F\n"`) are easy to type but cost a parser for hex digits and whitespace, and take three times as many bytes. Binary packets whose length is set by the opcode are trivial to parse. The opcodes are printable letters anyway, so they are easy to spot in a hex dump or on a logic analyzer.
 - **No reply to WRITE.** Writes are the common case and should go as fast as the link allows. If the PC needs to know that its writes have happened, it sends a READ: the parser handles packets strictly in order, so when the reply comes back, every earlier write has already taken effect. That is how the host script uses it.
 - **Unused addresses do not alias.** Decoding only `addr[3:0]` would be smaller, but then address `0x10` would quietly overwrite register 0. A missing register should be missing. Both testbenches write to `0x10`, `0x1F`, `0xFF` and others and check that registers 0 to 15 are untouched.
-- **Weak resynchronization.** Skipping unknown bytes lets the parser recover from junk between packets. It cannot recover from a byte lost *inside* a packet: the parser then reads the next opcode as data and stays one byte out of step until it happens to realign. Over a USB serial link with a FIFO in front, lost bytes do not happen. Step 5.2 adds a real recovery rule (raising SPI chip-select resets the parser) when the link gets less forgiving.
+- **Weak resynchronization.** Skipping unknown bytes lets the parser recover from junk between packets. It cannot recover from a byte lost *inside* a packet: the parser then reads the next opcode as data and stays one byte out of step until it happens to realign. Over a USB serial link with a FIFO in front, lost bytes do not happen. Chapter 5.2 adds a real recovery rule (raising SPI chip-select resets the parser) when the link gets less forgiving.
 
 ## 5. The parser
 
@@ -162,7 +162,7 @@ Every state except REPLY moves on when it receives a byte. REPLY moves on when t
 
 **Talking to the transmitter.** `uart_tx` accepts a byte on an edge where `i_valid = 1` and `o_busy = 0`, and raises `o_busy` at that same edge. In REPLY, the parser waits for `i_tx_busy` to be 0, presents the reply with `o_tx_valid = 1` for a clock, and returns to OP. A valid that is ignored because the transmitter is busy is not a reply sent, so the parser must keep the reply until it is truly accepted. A parser that fires `o_tx_valid` once and moves on works most of the time and loses a reply the first time the transmitter is still busy.
 
-**The registers** are 16 eight-bit flip-flop registers, 128 flip-flops in all, with a 16-way multiplexer to read them. They could live in a block RAM, but the LEDs and display need registers 0 and 1 on wires all the time, and a block RAM only shows one word at a time. 16 bytes of flip-flops is affordable; Step 2.5's 2 KB tile map is not, and goes into block RAM. Capture the reply value when the READ's address byte arrives (`00` for addresses `0x10` and up) in a reply register `o_tx_data`.
+**The registers** are 16 eight-bit flip-flop registers, 128 flip-flops in all, with a 16-way multiplexer to read them. They could live in a block RAM, but the LEDs and display need registers 0 and 1 on wires all the time, and a block RAM only shows one word at a time. 16 bytes of flip-flops is affordable; Chapter 2.5's 2 KB tile map is not, and goes into block RAM. Capture the reply value when the READ's address byte arrives (`00` for addresses `0x10` and up) in a reply register `o_tx_data`.
 
 ### Testing the parser
 
@@ -179,7 +179,7 @@ At the system level, nothing in this chapter can make the transmitter the bottle
                                                          +--> o_reg0, o_reg1
 ```
 
-`uart_rx`'s one-clock `o_valid` pulse is the FIFO's write enable and its `o_data` the write data. Use `fifo #(.WIDTH(8), .DEPTH(512))`, one block RAM. Leave the FIFO's `o_full` unconnected for now, or better, think about what you would do with it: in Phase 4 it becomes a status bit the host can read.
+`uart_rx`'s one-clock `o_valid` pulse is the FIFO's write enable and its `o_data` the write data. Use `fifo #(.WIDTH(8), .DEPTH(512))`, one block RAM. Leave the FIFO's `o_full` unconnected for now, or better, think about what you would do with it: in Phase 4 a "nearly full" version of it becomes the flow-control signal that makes the host wait, and in Phase 5 a status bit the host can read.
 
 Why have a FIFO at all, if the parser is faster than the line? Because "the parser is faster than the line" is true only of this chapter's two commands. The moment a command takes longer than a byte time to execute (in Phase 4, clearing the framebuffer takes 1.5 ms, about 17 byte times at 115,200 baud), the bytes behind it must wait somewhere. The plumbing is built now, while it is simple to test.
 

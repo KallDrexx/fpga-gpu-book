@@ -21,7 +21,7 @@ By the end of this chapter you will have:
 
 That definition makes three choices:
 
-- **Both corners are inclusive.** (x0, y0) and (x1, y1) are pixels of the rectangle. A rectangle from (5, 7) to (5, 7) is that one pixel, and x0 == x1 is a one-pixel-wide column. The other common convention, half-open [x0, x1), needs x1 = 320 to reach the right edge, a coordinate that isn't on the screen. Inclusive corners match `PLOT`'s single point, Step 4.4's line endpoints, and the vertices of Step 4.7's triangles, so an outline drawn with four `DRAW_LINE`s covers exactly the edge pixels of the filled rectangle. The cost is that an empty rectangle can't be expressed. A host that wants nothing drawn sends nothing.
+- **Both corners are inclusive.** (x0, y0) and (x1, y1) are pixels of the rectangle. A rectangle from (5, 7) to (5, 7) is that one pixel, and x0 == x1 is a one-pixel-wide column. The other common convention, half-open [x0, x1), needs x1 = 320 to reach the right edge, a coordinate that isn't on the screen. Inclusive corners match `PLOT`'s single point, Chapter 4.4's line endpoints, and the vertices of Chapter 4.7's triangles, so an outline drawn with four `DRAW_LINE`s covers exactly the edge pixels of the filled rectangle. The cost is that an empty rectangle can't be expressed. A host that wants nothing drawn sends nothing.
 - **The corners may come in either order.** (30, 20, 10, 40) is the same rectangle as (10, 20, 30, 40). A host that gets corners from moving objects, a drag box, or a bar chart with negative values doesn't have to sort them. The alternative, "inverted means empty", belongs with half-open corners and makes the drawing depend on the order the host happened to use. Sorting costs two 16-bit signed compares and some multiplexers, once per command.
 - **Coordinates are signed 16-bit and anything off the screen is clipped away.** A rectangle partly off the screen draws its visible part. One entirely off the screen draws nothing and takes no time.
 
@@ -81,7 +81,7 @@ Other loop structures are fine as long as they keep that rate. Computing `y*320 
 | `RECT_SETUP` | `addr = row = ys*320 + xs`, x = xs, y = ys, write the first pixel, go to `RECT` |
 | `RECT` | one write per clock, as in Section 3, then back to `FETCH` |
 
-The payload sits in the argument buffer as in Chapter 4.2: x0 in bytes 0-1, y0 in 2-3, x1 in 4-5, y1 in 6-7, color in byte 8. With `S_RECT_SETUP` and `S_RECT`, Chapter 4.2's six states become eight, and a 3-bit state register is full. Widen it to 4 bits now, since Steps 4.4-4.8 add more states.
+The payload sits in the argument buffer as in Chapter 4.2: x0 in bytes 0-1, y0 in 2-3, x1 in 4-5, y1 in 6-7, color in byte 8. With `S_RECT_SETUP` and `S_RECT`, Chapter 4.2's six states become eight, and a 3-bit state register is full. Widen it to 4 bits now, since Chapters 4.4-4.8 add more states.
 
 Because the engine fetches only in `FETCH`, a long rectangle holds back the FIFO exactly as `CLEAR` does, and commands stay in order. The testbench repeats Chapter 4.2's back-pressure test with a full-screen fill followed at once by 34 more rectangles.
 
@@ -157,12 +157,12 @@ Nothing in the top changes. Copy `projects/4.2-cmd/` to `projects/4.3-rect/`, se
   Max frequency for clock 'clk_sys': 110.30 MHz (PASS at 50.00 MHz)
 ```
 
-- Compared with Step 4.2 (1,330 LUTs, 426 flip-flops), `FILL_RECT` costs about 385 LUTs and 100 flip-flops. The block RAMs are unchanged.
+- Compared with Chapter 4.2 (1,330 LUTs, 426 flip-flops), `FILL_RECT` costs about 385 LUTs and 100 flip-flops. The block RAMs are unchanged.
 - `clk_sys` dropped from 169 MHz to 110 MHz. The new critical path starts at the argument buffer, goes through the signed compares of the sort and then the clamp, and ends at the registers `EXEC` loads. That is Section 4's chain, and it still has more than twice the margin needed.
 
 ## 8. On the board
 
-Wiring and programming are as in Step 4.2: adapter TXD to JA pin 1, RXD to JA pin 2, GND to JA pin 5, monitor on the HDMI TX port, then `make prog`.
+Wiring and programming are as in Chapter 4.2: adapter TXD to JA pin 1, RXD to JA pin 2, GND to JA pin 5, monitor on the HDMI TX port, then `make prog`.
 
 1. The Chapter 4.1 test image appears and LD0 lights.
 2. Copy `host/rect_test.py` next to `gpu_model.py` and run it. It sets eight palette colors, clears, and sends 500 random rectangles of the same kinds as the testbench, with an `FB_CRC` after every 100. With `--seed 7` the byte count and every CRC below are what `gpu_model` computes, so your hardware must print them exactly. The time is roughly what 5,561 bytes take at 115,200 baud:

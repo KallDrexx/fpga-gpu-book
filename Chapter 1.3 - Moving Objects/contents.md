@@ -40,7 +40,7 @@ This is **tearing**. With a slow square it looks like a jagged edge that flicker
 
 The cure is to change the game state only while nothing is being drawn. **Vertical blanking** is the gap between the last visible line (479) and the first line of the next frame. It is 45 lines, or 36,000 clocks (1.44 ms), during which `de` is low on every pixel. Anything that changes during blanking is invisible, and the next frame is drawn entirely from the new state.
 
-This chapter updates at the **start** of vertical blanking: the first clock of line 480. Any point in blanking would avoid tearing, and the testbench accepts any, but the start leaves the most time before the next frame for game logic that takes many clocks. The same idea returns at full scale in Step 4.5, where swapping whole framebuffers outside blanking tears in exactly the same way.
+This chapter updates at the **start** of vertical blanking: the first clock of line 480. Any point in blanking would avoid tearing, and the testbench accepts any, but the start leaves the most time before the next frame for game logic that takes many clocks. The same idea returns at full scale in Chapter 4.5, where swapping whole framebuffers outside blanking tears in exactly the same way.
 
 ## 3. The frame tick
 

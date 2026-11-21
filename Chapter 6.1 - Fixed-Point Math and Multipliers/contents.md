@@ -213,6 +213,16 @@ To see which registers went into the block, add `write_verilog -noattr build/mac
 
 **About Fmax.** If you place and route the unit (wrapped in a small top whose inputs come from an LFSR), nextpnr-xilinx reports a very high maximum frequency (about 530 MHz for the reference). Don't trust it for DSP paths: an unpipelined version with the multiply, accumulate and rounding all in one clock reported about 450 MHz, which real silicon cannot do. The design runs at 50 MHz, so this is not a problem, but keep the pipeline registers anyway; they cost nothing inside the block.
 
+## Phase 6 conventions set here
+
+Later chapters use these without restating them.
+
+- **Formats:** model-space vertex coordinates and translations are signed 16-bit integers (Q16.0). Matrix entries, normals and light directions are Q2.14 (1.0 = `0x4000`, range [−2, 2)), so a matrix is a rotation times a uniform scale below 2; the translation column stays Q16.0. Q2.14 × Q16.0 products are Q18.14; accumulators are 48 bits.
+- **Rounding:** drop fraction bits by round half up (add 2^(FRAC−1), arithmetic shift right), then saturate to the output width. This is the only rounding in Phase 6 hardware and Python models.
+- **The MAC:** `mac_unit` as in Section 6: serial, one product per clock, `i_clear`/`i_last` flags, fixed latency (4 in the reference). Users take results by `o_valid`, never by counting clocks. `FRAC` and `OUT_W` are chosen per use (Chapter 6.5 picks the transform's output format); one DSP48E1 holds `A_W` ≤ 25 and `B_W` ≤ 18.
+- **Synthesis:** registers that feed a multiplier start at 0.
+- **Models:** `sim/py/ref_mac.py` exports `mac_ref(terms, frac=14, out_w=16)`.
+
 ## Testbench requirements
 
 **Module:** `mac_unit #(A_W = 16, B_W = 16, ACC_W = 48, FRAC = 14, OUT_W = 16)` in `rtl/common/mac_unit.v`, ports as in Section 6: `i_clk`, `i_valid`, `i_clear`, `i_last`, signed `i_a[A_W-1:0]`, signed `i_b[B_W-1:0]`, `o_valid`, signed `o_data[OUT_W-1:0]`. No reset. The testbench uses the default parameters.
@@ -232,13 +242,3 @@ cd build/sim && vvp -n tb_mac_unit.vvp
 ```
 
 **DSP check:** `make dsp-mac_unit` (Section 9) lists one `DSP48E1`.
-
-## Phase 6 conventions set here
-
-Later chapters use these without restating them.
-
-- **Formats:** model-space vertex coordinates and translations are signed 16-bit integers (Q16.0). Matrix entries, normals and light directions are Q2.14 (1.0 = `0x4000`, range [−2, 2)), so a matrix is a rotation times a uniform scale below 2; the translation column stays Q16.0. Q2.14 × Q16.0 products are Q18.14; accumulators are 48 bits.
-- **Rounding:** drop fraction bits by round half up (add 2^(FRAC−1), arithmetic shift right), then saturate to the output width. This is the only rounding in Phase 6 hardware and Python models.
-- **The MAC:** `mac_unit` as in Section 6: serial, one product per clock, `i_clear`/`i_last` flags, fixed latency (4 in the reference). Users take results by `o_valid`, never by counting clocks. `FRAC` and `OUT_W` are chosen per use (Chapter 6.5 picks the transform's output format); one DSP48E1 holds `A_W` ≤ 25 and `B_W` ≤ 18.
-- **Synthesis:** registers that feed a multiplier start at 0.
-- **Models:** `sim/py/ref_mac.py` exports `mac_ref(terms, frac=14, out_w=16)`.

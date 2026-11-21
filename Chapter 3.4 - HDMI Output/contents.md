@@ -1,11 +1,11 @@
 # Chapter 3.4 - HDMI Output
 
-Chapter 3.3 turned a pixel into three 10-bit TMDS symbols per clock. This chapter puts them on the wire. Each symbol has to leave the chip one bit at a time, 250 million bits per second per channel, on a differential pair. No fabric flip-flop can do that reliably, so the 7-series I/O tiles have dedicated serializers, `OSERDESE2`, and differential output buffers, `OBUFDS`. With those, Step 1.1's timing generator and color bars appear on an HDMI monitor.
+Chapter 3.3 turned a pixel into three 10-bit TMDS symbols per clock. This chapter puts them on the wire. Each symbol has to leave the chip one bit at a time, 250 million bits per second per channel, on a differential pair. No fabric flip-flop can do that reliably, so the 7-series I/O tiles have dedicated serializers, `OSERDESE2`, and differential output buffers, `OBUFDS`. With those, Chapter 1.1's timing generator and color bars appear on an HDMI monitor.
 
 By the end of this chapter you will have:
 
 - `rtl/xc7/tmds_serializer.v`: one TMDS lane, a 10:1 `OSERDESE2` master and slave pair with an `OBUFDS`,
-- `rtl/xc7/hdmi_tx.v`: three `tmds_encoder`s and four serializers, the DVI transmitter Step 3.5 reuses,
+- `rtl/xc7/hdmi_tx.v`: three `tmds_encoder`s and four serializers, the DVI transmitter Chapter 3.5 reuses,
 - `projects/3.4-hdmi-bars/`: `clk_gen`, `vga_timing`, `color_bars` and `hdmi_tx` on the Arty Z7's HDMI OUT port,
 - `sim/tb_hdmi.v` passing: it receives your four TMDS pairs the way a monitor does and checks the decoded video, and
 - color bars on a real monitor, which reports 640x480 at 60 Hz.
@@ -32,7 +32,7 @@ An `OSERDESE2` (output serializer/deserializer) sits in the I/O tile, right next
 | `clk_pix` | `CLKDIV` | 25 MHz | takes one 10-bit word per rising edge |
 | `clk_ser` | `CLK` | 125 MHz | shifts out 2 bits per cycle (rising and falling edge) |
 
-This is why Step 3.2's MMCM makes `clk_ser` exactly 5 x `clk_pix` from the same VCO. The serializer needs the two clocks phase-aligned: each `CLKDIV` rising edge must line up with a `CLK` rising edge. Two clocks from unrelated sources, or a `CLK` that is not exactly five times `CLKDIV`, make it drop or repeat bits.
+This is why Chapter 3.2's MMCM makes `clk_ser` exactly 5 x `clk_pix` from the same VCO. The serializer needs the two clocks phase-aligned: each `CLKDIV` rising edge must line up with a `CLK` rising edge. Two clocks from unrelated sources, or a `CLK` that is not exactly five times `CLKDIV`, make it drop or repeat bits.
 
 ### Master and slave
 
@@ -66,7 +66,7 @@ Every differential output owns both I/O sites of its pin pair, and each site has
 
 The serializer has its own small state machine: a counter that decides on which `CLK` edge the next word is loaded, and the link between master and slave. UG471 asks for `RST` to be asserted **after `CLK` and `CLKDIV` are stable**, and released **synchronously to `CLKDIV`**, with the master and slave released on the same edge. (`RST` acts at once when it rises; the serializer retimes its release internally.) Otherwise the load point is undefined, and the master and slave can disagree about where a word starts.
 
-You already have exactly that signal. Step 3.2's `o_rst_pix` is high until the MMCM locks and falls on a `clk_pix` edge. Connect it to `RST` on both `OSERDESE2`s of every lane. Do not tie `RST` to 0, and do not use a power-up pulse that ends before `LOCKED` rises.
+You already have exactly that signal. Chapter 3.2's `o_rst_pix` is high until the MMCM locks and falls on a `clk_pix` edge. Connect it to `RST` on both `OSERDESE2`s of every lane. Do not tie `RST` to 0, and do not use a power-up pulse that ends before `LOCKED` rises.
 
 `RST` holds `OQ` at 0, so while the MMCM relocks after a press of `btn[0]`, the HDMI lines are quiet and the monitor shows "no signal" for a moment.
 
@@ -140,7 +140,7 @@ module hdmi_tx (
 );
 ```
 
-Three `tmds_encoder`s from Chapter 3.3: channel 0 gets blue with `i_ctrl = {i_vsync, i_hsync}`, channel 1 green and channel 2 red, both with `i_ctrl = 2'b00`. Then four `tmds_serializer`s: one per channel on `o_d_p[n]`/`o_d_n[n]`, and one sending `10'b1111100000` on `o_clk_p`/`o_clk_n`. Step 3.5 moves Pong and the tile engine onto this module, so keep board details out of it.
+Three `tmds_encoder`s from Chapter 3.3: channel 0 gets blue with `i_ctrl = {i_vsync, i_hsync}`, channel 1 green and channel 2 red, both with `i_ctrl = 2'b00`. Then four `tmds_serializer`s: one per channel on `o_d_p[n]`/`o_d_n[n]`, and one sending `10'b1111100000` on `o_clk_p`/`o_clk_n`. Chapter 3.5 moves Pong and the tile engine onto this module, so keep board details out of it.
 
 ### From 3 bits to 8 bits
 
@@ -266,7 +266,7 @@ How to read it:
 - **`IOB33M_OUTBUF` 4, `IOB33S_OUTBUF` 4, `INVERTER` 4**: nextpnr builds each `OBUFDS` from both I/O sites of its pair, the M site (P pin) and the S site (N pin), the latter with an inverted copy of the signal. `grep TMDS_33 build/hdmi_bars.fasm` shows `TMDS_33.OUT` features in the four HDMI I/O tiles, which is how you can see that the `.xdc` standard reached the bitstream. `IOB33_OUTBUF` 4 are the LEDs, and `PAD` 17 counts the clock, four buttons, four LEDs and eight HDMI pins.
 - **`BUFGCTRL` 2**: `clk_pix` and `clk_ser`. `clk_sys` is unused, so yosys removed its buffer.
 - **Only `clk_pix` has a timing line.** `clk_ser` drives only the serializers' `CLK` pins and no fabric flip-flops, so nextpnr has no register-to-register path to report for it. Since Chapter 3.2 changed the report to `tail -n 3`, you may see the `clk_pix` line up to three times, from different stages of the run. The last one is the final result, around 290 MHz. In the log you should still find `Derived VCO frequency 1000.0 MHz` and `Derived frequency constraint of 125.0 MHz for net clk_ser`.
-- **Small encoders.** Yosys counts only 53 LUTs and 64 flip-flops for the whole design, far less than three times the 56 LUTs per encoder from Chapter 3.3. Color bars only ever send `8'h00` or `8'hFF`, and yosys simplifies the encoders for those two values. Step 3.5's games will use the full logic.
+- **Small encoders.** Yosys counts only 53 LUTs and 64 flip-flops for the whole design, far less than three times the 56 LUTs per encoder from Chapter 3.3. Color bars only ever send `8'h00` or `8'hFF`, and yosys simplifies the encoders for those two values. Chapter 3.5's games will use the full logic.
 
 nextpnr places the serializers itself, master and slave in the two sites of each pair's I/O tile, with `SHIFTOUT` wired over the tile's dedicated cascade path. (The FASM marks the slaves with `OSERDES.SERDES_MODE.SLAVE`.)
 

@@ -111,7 +111,7 @@ The pieces and the choices around them:
 | 0 (power-up) | the entry's `intensity` byte, the same for all three corners: **flat shading** | this chapter's cube; a model whose lighting the host computes |
 | 1 | byte 7 of corner k's transformed record: **per-vertex**, interpolated across the triangle by Chapter 6.3's rasterizer | Chapter 6.7's lit models |
 
-Byte 7 of a record is the reserved byte Chapter 6.5 left for this. Today the vertex unit writes 0 there, so mode 1 draws every face at its darkest shade (`f4` shows exactly that). **How Chapter 6.7 plugs in:** it changes the vertex pipeline to compute a brightness per vertex and write it to byte 7 of the record, converts it to Q5.3 as Chapter 6.3 prescribes, and the host sets mode bit 2. `DRAW_MESH` itself does not change. The only Python change is that `vertex_model`'s result gains a fifth field and `gpu_model.draw_triangle` uses it where it now uses 0.
+Byte 7 of a record is the reserved byte Chapter 6.5 left for this. Today the vertex unit writes 0 there, so mode 1 draws every face at its darkest shade (`f4` shows exactly that). **How Chapter 6.7 plugs in:** it adds a lighting pass to `TRANSFORM` that computes a brightness per vertex, converts it to Q5.3 as Chapter 6.3 prescribes and writes it to byte 7 of the record, and the host sets mode bit 2. `DRAW_MESH` itself does not change, and the Python model fills the same byte where it now leaves 0.
 
 ## 6. The commands
 

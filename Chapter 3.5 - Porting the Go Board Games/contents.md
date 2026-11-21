@@ -5,10 +5,10 @@ Phase 0 made a rule: keep everything board-specific in one thin top module, and 
 By the end of this chapter you will have:
 
 - `projects/3.5-pong/top_artyz7.v`: Pong on the Arty's buttons, over HDMI,
-- `projects/3.5-scroll/top_artyz7.v`: Step 2.5's `uart_ppu`, with the UART on Pmod JA through a USB-serial adapter,
+- `projects/3.5-scroll/top_artyz7.v`: Chapter 2.5's `uart_ppu`, with the UART on Pmod JA through a USB-serial adapter,
 - `sim/tb_arty_pong.v` and `sim/tb_arty_scroll.v` passing: they drive the board pins and receive the HDMI video with this chapter's `sim/hdmi_rx_model.v`,
 - proof that every Phase 1 and 2 testbench still passes against the same `rtl/common/`, and
-- both games on a monitor, with `host/scroll_demo.py` from Step 2.5 driving the tile engine unchanged.
+- both games on a monitor, with `host/scroll_demo.py` from Chapter 2.5 driving the tile engine unchanged.
 
 ```
                  top_goboard.v (Phase 2)                 top_artyz7.v (this chapter)
@@ -214,7 +214,7 @@ make test                                              # the testbenches, Phases
 make frame                                             # the frame tests, Phases 1-2
 ```
 
-`make test` with no `TESTS` runs every `sim/tb_*.v` from `build/sim/`, and that would include the `tb_frame_*` testbenches. Run from there, their root-relative paths find neither the `.hex` files nor `build/`, and they fail; they belong to `make frame`. If your `mk/sim.mk` does not leave them out yet, make it: `ALL_TESTS := $(filter-out tb_frame_%,$(sort $(basename $(notdir $(wildcard $(ROOT)/sim/tb_*.v)))))`.
+`make test` with no `TESTS` runs every `sim/tb_*.v` from `build/sim/`, and that would include the `tb_frame_*` testbenches. Run from there, their root-relative paths find neither the `.hex` files nor `build/`, and they fail; they belong to `make frame`. Chapter 1.2 asked you to leave them out; if your `mk/sim.mk` does not yet, make it: `ALL_TESTS := $(filter-out tb_frame_%,$(sort $(basename $(notdir $(wildcard $(ROOT)/sim/tb_*.v)))))`.
 
 The first line proves that porting did not edit a core. The other two prove that the cores still do what they did: the Phase 1 and 2 tests (`tb_pong_game`, the UART tests, and every frame test from Chapters 1.2 to 2.5) read exactly the same `rtl/common/` files that the Arty builds read. If a test fails here, the port changed something it should not have. Revert it, and solve the problem in the top or with a parameter instead.
 
@@ -224,7 +224,7 @@ Then build both projects for the Arty. That is the other half of portability: th
 
 Copy `hdmi_rx_model.v`, `tb_arty_pong.v` and `tb_arty_scroll.v` from this chapter to `sim/`, next to the Chapter 3.2 and 3.4 models.
 
-**`hdmi_rx_model.v`** is Chapter 3.4's testbench receiver turned into a module. Connect it to the four TMDS pairs and it gives back what a monitor would see: a recovered pixel clock `o_clk` and, per pixel clock, `o_de`, `o_hsync`, `o_vsync` and 8-bit `o_red`, `o_grn`, `o_blu`, plus `o_ok` for words that decoded cleanly. Internally it does what `tb_hdmi` did: it locks onto the clock pair, finds the word boundaries from the control symbols and checks every data symbol against the DVI 1.0 encoder. Its outputs are stable at each rising edge of `o_clk`, so Chapter 1.2's `frame_dump` with `BITS = 8` can save what arrives over HDMI as a PPM. Phase 4 uses it that way.
+**`hdmi_rx_model.v`** is Chapter 3.4's testbench receiver turned into a module. Connect it to the four TMDS pairs and it gives back what a monitor would see: a recovered pixel clock `o_clk` and, per pixel clock, `o_de`, `o_hsync`, `o_vsync` and 8-bit `o_red`, `o_grn`, `o_blu`, plus `o_ok` for words that decoded cleanly. Internally it does what `tb_hdmi` did: it locks onto the clock pair, finds the word boundaries from the control symbols and checks every data symbol against the DVI 1.0 encoder. Its outputs are stable at each rising edge of `o_clk`, so Chapter 1.2's `frame_dump` with `BITS = 8` can save what arrives over HDMI as a PPM. (Phase 4's frame tests take a shorter road and dump the 8-bit colors in front of `hdmi_tx`; the model is there whenever you want to check a picture end to end.)
 
 Both testbenches touch only the board pins. Like `tb_hdmi`, they keep the real 800-clock lines and shorten the frame through the `V_` parameters.
 
@@ -282,13 +282,13 @@ How to read it:
 
 **The tile engine.** Wire the adapter to Pmod JA (Section 5) and plug it into the PC. Find its port: run `ls /dev/ttyUSB*` before and after plugging it in. The Arty's own USB connection also adds serial ports, so the adapter may be `/dev/ttyUSB2` rather than `ttyUSB0`. Run `make prog` in `projects/3.5-scroll/`, then:
 
-1. `python3 host/scroll_demo.py /dev/ttyUSBn` prints `map drawn: 6306 bytes in 0.55 s`, and LD0 and LD2 light up (LEDS = `0x5`, read back by the script's link check).
+1. `.venv/bin/python host/scroll_demo.py /dev/ttyUSBn` prints `map drawn: 6306 bytes in 0.55 s`, and LD0 and LD2 light up (LEDS = `0x5`, read back by the script's link check).
 2. Go through the rest of Chapter 2.5's list: the starfield and the ship, smooth diagonal scrolling, the seamless wrap at the map's edge, `--dx 1 --dy 0` crossing X = 256 without a flash, and about 60 frames per second when you press Ctrl-C. The frame rate is 25 MHz / 420,000 = 59.52 Hz, the same as the Go Board, because `clk_pix` is the same 25 MHz.
 3. Unplug the adapter while the board runs. The picture holds, and nothing changes on screen: the pull-up keeps the line idle. Plug it back in and run the script again.
 
 **If the script reports no answer**, swap the TXD and RXD wires first, then check GND, that the adapter is set to 3.3 V, and that `tb_arty_scroll` passes. **If the picture is right but the colors are off**, compare it with the same scene on the Go Board: with 8-bit output the colors should look the same or cleaner, never darker. A dim white means the expansion shifts instead of repeating the bits.
 
-**Done when:** `make test` and `make frame` pass with `rtl/common/` unchanged since Step 2.5, `tb_arty_pong` and `tb_arty_scroll` print `PASS`, and both games run on the monitor, the tile engine driven by `scroll_demo.py` through the adapter.
+**Done when:** `make test` and `make frame` pass with `rtl/common/` unchanged since Chapter 2.5, `tb_arty_pong` and `tb_arty_scroll` print `PASS`, and both games run on the monitor, the tile engine driven by `scroll_demo.py` through the adapter.
 
 ## Testbench requirements
 
@@ -301,9 +301,9 @@ How to read it:
   - `led[3:0]` is the left score while `sw[0]` is 0, the right score while it is 1 (only `0000` is checked).
 - `projects/3.5-scroll/top_artyz7.v`: `top_artyz7 #(V_VISIBLE=480, V_FRONT=10, V_SYNC=2, V_BACK=33, BAUD=115_200)(clk, led[3:0], uart_rx, uart_tx, hdmi_tx_clk_p, hdmi_tx_clk_n, hdmi_tx_d_p[2:0], hdmi_tx_d_n[2:0])`. Any other input you add is left unconnected by the test.
   - The same DVI output, line timing and color expansion; the picture is `uart_ppu`'s, with its delayed syncs.
-  - `uart_ppu` on `clk_pix` with `CLK_HZ = 25_000_000` and the top's `BAUD`. `uart_rx` is an input and idles high; `uart_tx` is driven by `uart_ppu` and idles high. Step 2.5's packets and register and VRAM maps; at 32 clocks per bit, `led` changes within 4 bit times of a packet's last byte and a read reply starts within 200 bit times.
+  - `uart_ppu` on `clk_pix` with `CLK_HZ = 25_000_000` and the top's `BAUD`. `uart_rx` is an input and idles high; `uart_tx` is driven by `uart_ppu` and idles high. Chapter 2.5's packets and register and VRAM maps; at 32 clocks per bit, `led` changes within 4 bit times of a packet's last byte and a read reply starts within 200 bit times.
   - `led[3:0]` is register 0x00 bits 3:0, `led[0]` = bit 0.
-  - Tile graphics loaded from `rtl/common/tiles.hex`, found from `build/sim/` (`TILE_FILE("../../rtl/common/tiles.hex")`); the map row and palette entries the test writes must show at once (VRAM writes are immediate in Step 2.5).
+  - Tile graphics loaded from `rtl/common/tiles.hex`, found from `build/sim/` (`TILE_FILE("../../rtl/common/tiles.hex")`); the map row and palette entries the test writes must show at once (VRAM writes are immediate in Chapter 2.5).
 - Below them, your `clk_gen`, `reset_sync`, `tmds_encoder`, `tmds_serializer` and `hdmi_tx` (Chapters 3.2-3.4), and the unchanged Phase 0-2 modules in `rtl/common/`.
 
 **Files from this chapter:** `hdmi_rx_model.v`, `tb_arty_pong.v` and `tb_arty_scroll.v` to `sim/`; `arty-z7-20.xdc` to `boards/arty-z7-20/arty-z7-20.xdc`. In `mk/sim.mk`, `tb_arty_pong_SRCS := $(ROOT)/projects/3.5-pong/top_artyz7.v` and `tb_arty_scroll_SRCS := $(ROOT)/projects/3.5-scroll/top_artyz7.v`. They also need Chapter 3.2's and 3.4's models (`MMCME2_BASE.v`, `BUFG.v`, `OSERDESE2.v`, `OBUFDS.v`) in `sim/`.

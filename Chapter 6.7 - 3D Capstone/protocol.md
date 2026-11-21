@@ -138,7 +138,7 @@ The UART has no frames and the hardware does not resynchronize it: there is no b
 
 ## 7. Replies and the MISO bytes
 
-Replies are raw bytes with no header, in command order: 4 bytes for `FB_CRC`, 9 for `GET_INFO`, 12 for `GET_STATS`, 8 for `READ_VERTEX`. They go to the link that sent the most recent byte written into the FIFO.
+Replies are raw bytes with no header, in command order: 4 bytes for `FB_CRC`, 9 for `GET_INFO`, 12 for `GET_STATS`, 8 for `READ_VERTEX`, 12 for `GET_MESH_STATS`. They go to the link that sent the most recent byte written into the FIFO.
 
 - **UART:** sent on `TX` as they are produced.
 - **SPI:** replies wait in a 16-byte queue and are read with read frames. Every frame returns on `MISO`:
@@ -210,7 +210,7 @@ Four sticky bits in byte 8 of `GET_INFO` (bits 7:4 read 0):
 | Bit | Name | Set when |
 | --- | --- | --- |
 | 0 | `OVERFLOW` | a byte was written into a full FIFO and lost |
-| 1 | `BAD_LEN` | a known opcode arrived with a wrong `len` (including `UPLOAD_ASSET` with fewer than 5 payload bytes, `UPLOAD_TILES` with fewer than 2, `WRITE_TILE_MAP` with fewer than 3 or an even number, `WRITE_TILE_COLUMN` or `WRITE_TILE_ROW` with any length other than 130, `APPEND_LIST` with no payload, the other list commands with any length but their own, section 14, `DRAW_TRI_SHADED` with any length but 22, the depth commands with any length but their own, `UPLOAD_VERTICES` with a length that is not 2 + 6k for some k of 1 or more, and the other vertex commands with any length but their own, section 17, `UPLOAD_INDICES` with a length that is not 2 + 8k for some k of 1 or more, and the other mesh commands with any length but their own, section 18) |
+| 1 | `BAD_LEN` | a known opcode arrived with a wrong `len` (including `UPLOAD_ASSET` with fewer than 5 payload bytes, `UPLOAD_TILES` with fewer than 2, `WRITE_TILE_MAP` with fewer than 3 or an even number, `WRITE_TILE_COLUMN` or `WRITE_TILE_ROW` with any length other than 130, `APPEND_LIST` with no payload, the other list commands with any length but their own, section 14, `DRAW_TRI_SHADED` with any length but 22, the depth commands with any length but their own, `UPLOAD_VERTICES` with a length that is not 2 + 6k for some k of 1 or more, and the other vertex commands with any length but their own, section 17, `UPLOAD_INDICES` with a length that is not 2 + 8k for some k of 1 or more, and the other mesh commands with any length but their own, section 18, `UPLOAD_NORMALS` with a length that is not 2 + 6k for some k of 1 or more, and `SET_LIGHT` with any length but 9, section 19) |
 | 2 | `BAD_OP` | an unknown opcode arrived (reserved ones included), or a command a display list may not hold was met in a list (section 14) |
 | 3 | `TRUNC` | a packet was abandoned by a frame start (section 4), or a display list ended inside a packet (section 14) |
 

@@ -2,8 +2,8 @@
 
 Chapter 6.1 gave the GPU a fast multiplier. Two places in Phase 6 need the opposite operation:
 
-- **Chapter 6.3** divides by the triangle's area once per triangle setup, to turn attribute differences into per-pixel steps.
-- **Chapter 6.5** divides by z once or twice per vertex: x' = f·x / z, y' = f·y / z. This is what makes distant objects smaller.
+- **Chapter 6.3** divides by the triangle's area in every triangle setup, to turn attribute differences into per-pixel steps.
+- **Chapter 6.5** divides by z for every vertex: x' = f·x / z, y' = f·y / z. This is what makes distant objects smaller.
 
 This chapter builds one small divider, `seq_divider`, and fixes its rules: rounding, divide by zero, overflow, fraction bits and the `busy`/`done` handshake. Like 6.1 it runs in simulation and synthesis only.
 
@@ -198,6 +198,16 @@ A reference design gives:
 
 No DSP and no RAM. The CARRY4 blocks are the loop's subtractor, the rounding compare and increment, the limit compare and the negations. The two-steps-per-clock version is about a third larger. Your counts will differ; what matters is no DSP, and no pile of LUTs big enough to be a multiplier. Timing is no concern: the loop is one 35-bit subtract and a mux, and the finish step a few carry chains in a row; the reference `wide` configuration, placed and routed alone, reaches about 100 MHz.
 
+## Phase 6 conventions set here
+
+Later chapters use these without restating them.
+
+- **The divider:** `seq_divider #(NUM_W, DEN_W, FRAC, Q_W)(i_clk, i_start, i_num, i_den, o_busy, o_done, o_quot, o_ovf)`, sequential, no DSP; the reference takes `NUM_W + FRAC + 2` clocks. Callers wait for `o_done`, never count clocks.
+- **Handshake:** a start is accepted only while `o_busy` is low (otherwise ignored); `o_done` is one clock with `o_busy` low, so back-to-back starts are legal; `o_quot`/`o_ovf` hold until the next `o_done`.
+- **Quotient:** `floor(num · 2^FRAC / den + 1/2)` (round half up, as in 6.1), saturated to `Q_W` bits with `o_ovf = 1`; exactly `Q_MIN` is not an overflow. Divide by zero: `Q_MAX` for `num >= 0`, `Q_MIN` for `num < 0`, `o_ovf = 1`.
+- **Precision:** a reciprocal in fixed point loses relative precision as the divisor grows (`area2` reaches 2^32). Chapter 6.3 chooses between one divide per gradient (suggested; for example `#(36, 34, 16, 34)`, 54 clocks each) and a reciprocal with enough bits. Chapter 6.5 sizes its perspective divide from its transform format (for example two `#(26, 16, 4, 20)` instances, 32 clocks per vertex).
+- **Models:** `sim/py/ref_divider.py` exports `div_ref(num, den, frac, q_w)` returning `(quotient, ovf)`.
+
 ## Testbench requirements
 
 **Module:** `seq_divider #(NUM_W, DEN_W, FRAC, Q_W)` in `rtl/common/seq_divider.v`, ports as in Section 5: `i_clk`, `i_start`, signed `i_num[NUM_W-1:0]`, signed `i_den[DEN_W-1:0]`, `o_busy`, `o_done`, signed `o_quot[Q_W-1:0]`, `o_ovf`. No reset. The testbench instantiates the five configurations of Section 7.
@@ -217,13 +227,3 @@ No DSP and no RAM. The CARRY4 blocks are the loop's subtractor, the rounding com
 iverilog -g2012 -Wall -Wno-timescale -y rtl/common -y rtl/xc7 -y sim -o build/sim/tb_seq_divider.vvp sim/tb_seq_divider.v
 cd build/sim && vvp -n tb_seq_divider.vvp
 ```
-
-## Phase 6 conventions set here
-
-Later chapters use these without restating them.
-
-- **The divider:** `seq_divider #(NUM_W, DEN_W, FRAC, Q_W)(i_clk, i_start, i_num, i_den, o_busy, o_done, o_quot, o_ovf)`, sequential, no DSP; the reference takes `NUM_W + FRAC + 2` clocks. Callers wait for `o_done`, never count clocks.
-- **Handshake:** a start is accepted only while `o_busy` is low (otherwise ignored); `o_done` is one clock with `o_busy` low, so back-to-back starts are legal; `o_quot`/`o_ovf` hold until the next `o_done`.
-- **Quotient:** `floor(num · 2^FRAC / den + 1/2)` (round half up, as in 6.1), saturated to `Q_W` bits with `o_ovf = 1`; exactly `Q_MIN` is not an overflow. Divide by zero: `Q_MAX` for `num >= 0`, `Q_MIN` for `num < 0`, `o_ovf = 1`.
-- **Precision:** a reciprocal in fixed point loses relative precision as the divisor grows (`area2` reaches 2^32). Chapter 6.3 chooses between one divide per gradient (suggested; for example `#(36, 34, 16, 34)`, 54 clocks each) and a reciprocal with enough bits. Chapter 6.5 sizes its perspective divide from its transform format (for example two `#(26, 16, 4, 20)` instances, 32 clocks per vertex).
-- **Models:** `sim/py/ref_divider.py` exports `div_ref(num, den, frac, q_w)` returning `(quotient, ovf)`.

@@ -261,7 +261,7 @@ The reference build (yosys about 35 s, place and route about 65 s) is essentiall
 - `GET_INFO` and `CLEAR_ERRORS` as in `protocol.md`. `GET_INFO` replies `47 01 CL CH 40 01 F0 00 ER`, with `CL CH` = `0F 02` for `gpu_link` and `ER` the error flags.
 - The flags as in `protocol.md` section 9: a frame start inside a packet sets `TRUNC`, a wrong length `BAD_LEN`, an unknown opcode `BAD_OP`, a write into a full FIFO `OVERFLOW`. They are sticky, cleared only by `CLEAR_ERRORS` with their bit in the mask, and a new event in the same clock as a clear stays set. The status byte is unchanged.
 - **`uart_gpu`** gets the same engine, with `CAPS` = `0x000F` and its `o_overflow` cleared by `o_clr_ovf`; the Phase 4 testbenches must still pass through it.
-- **`host/gpu_model.py`** from this chapter, `sim/py/ref_scanout.py` (Chapter 4.1) for the test image, and Chapter 4.8's `fb_test.hex` and `pal_test.hex`, as in Chapter 5.1.
+- **`host/gpu_model.py`** from this chapter, `sim/py/ref_scanout.py` (Chapter 4.1) for the test image, and Chapter 4.1's `rtl/common/fb_test.hex` and `pal_test.hex`, as in Chapter 5.1.
 
 **`tb_gpu_fuzz`** (about 3 minutes): as in Section 7. It reads `../../sim/fuzz_*` and `../../rtl/common/*.hex` and uses only `gpu_link`'s ports. Prints `PASS: tb_gpu_fuzz (...)`. It fails on any wrong or missing reply byte, framebuffer byte or palette entry, any bad status byte, a write to the front buffer during a `FLIP`, a reply on the UART, `o_overflow` high outside the overflow test, a hang as defined in Section 7, or any wrong flag step. `+half=NS` forces one `SCK` half-period for the whole stream (for example `vvp -n tb_gpu_fuzz.vvp +half=80`). Watchdog 3 s simulated.
 

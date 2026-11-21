@@ -84,7 +84,7 @@ The most important property of the generator is that `x`, `y`, `de`, `hsync` and
 
 The simplest way to get this is to register only the two counters and compute `de`, `hsync` and `vsync` combinationally from them (`assign`). The testbench requires this alignment, and checks it on every cycle.
 
-You may register the three flags instead (it removes a little combinational logic from their paths). If you do, you must compare against the *next* value of the counters, or delay `x` and `y` by one cycle too, so that everything still lines up. A `de` that is one cycle late is the classic bug here: the picture shifts one pixel and the frame dump in Step 1.2 will show it.
+You may register the three flags instead (it removes a little combinational logic from their paths). If you do, you must compare against the *next* value of the counters, or delay `x` and `y` by one cycle too, so that everything still lines up. A `de` that is one cycle late is the classic bug here: the picture shifts one pixel and the frame dump in Chapter 1.2 will show it.
 
 ### Power-up state
 

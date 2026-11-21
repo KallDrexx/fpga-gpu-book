@@ -31,7 +31,7 @@ A UART carries a stream of bytes with no boundaries in it. The first job is to a
 - **length**, one byte, is the number of payload bytes, 0 to 255. It does not count the opcode or itself. `FB_CRC` has length 0, so its whole packet is the two bytes `04 00`.
 - **payload** is the command's arguments.
 
-Inside the payload, numbers wider than a byte are **little-endian**: low byte first. Coordinates are **signed 16-bit** (two's complement), even though the screen only needs 0-319. Step 4.3 clips rectangles with off-screen and negative corners, so the format allows them from the start. Colors are one byte, a palette index. Palette colors are three bytes, R then G then B.
+Inside the payload, numbers wider than a byte are **little-endian**: low byte first. Coordinates are **signed 16-bit** (two's complement), even though the screen only needs 0-319. Chapter 4.3 clips rectangles with off-screen and negative corners, so the format allows them from the start. Colors are one byte, a palette index. Palette colors are three bytes, R then G then B.
 
 The length is what makes the format robust. The parser always reads exactly `length` payload bytes, whether or not it understands the packet. That gives two rules:
 
@@ -40,9 +40,9 @@ The length is what makes the format robust. The parser always reads exactly `len
 
 Either way the parser stays in step with the stream, because it never reads more or less than the length says. `NOP` is the one command that accepts any length. It is useful as padding, and it is a good test that the parser really skips payloads.
 
-What the length can't fix is a lost or extra byte. If a byte goes missing, the parser reads the next opcode as payload, and from then on it is out of step until something resets it. Step 5.2 makes the SPI chip select reset the parser. On the UART, this chapter uses a button: `BTN0` resets the parser.
+What the length can't fix is a lost or extra byte. If a byte goes missing, the parser reads the next opcode as payload, and from then on it is out of step until something resets it. Chapter 5.2 makes the SPI chip select reset the parser. On the UART, this chapter uses a button: `BTN0` resets the parser.
 
-A length byte limits a packet to 255 payload bytes. Every command up to Step 4.7 fits easily: the largest, `DRAW_TRI`, needs 13. Step 4.8's asset uploads are larger and will be sent as several packets.
+A length byte limits a packet to 255 payload bytes. Every command up to Chapter 4.7 fits easily: the largest, `DRAW_TRI`, needs 13. Chapter 4.8's asset uploads are larger and will be sent as several packets.
 
 ### The opcodes
 
@@ -80,15 +80,15 @@ One `CLEAR` lasts about 18 byte times at 115,200 baud, so 512 bytes is plenty fo
 - **The host paces itself.** It asks for `FB_CRC` (or later another reply) and waits for the answer before sending more. Once the reply arrives, everything before it is finished and the FIFO is empty.
 - **Hardware flow control.** Many USB-serial adapters have a CTS (clear to send) input. While CTS is high (it is active low), the adapter stops sending. Wire it to a pin driven by `~o_ready`, where `o_ready` says the FIFO still has room. The board stops the host whenever the FIFO is nearly full.
 
-This chapter's host script needs neither, but the design provides both. `o_ready` is 1 while at least 32 bytes are free. That margin matters because an adapter may finish a byte or two after CTS rises. Step 5.1 brings the same signal out as the SPI link's `READY` pin.
+This chapter's host script needs neither, but the design provides both. `o_ready` is 1 while at least 32 bytes are free. That margin matters because an adapter may finish a byte or two after CTS rises. Chapter 5.1 brings the same signal out as the SPI link's `READY` pin.
 
 If a byte arrives while the FIFO is full, it is lost. Set a sticky `o_overflow` flag and show it on an LED. With a correct design and a well-behaved host, it never lights.
 
 ### Which clock does the UART run on?
 
-The framebuffer port and the engine run on `clk_sys`, 50 MHz. The UART could stay on `clk_pix` as in Step 3.5, with an **asynchronous FIFO** between the two clocks: a FIFO whose write and read ports have separate clocks, with Gray-coded pointers synchronized across. That works, and it is exactly the kind of logic that is easy to get subtly wrong.
+The framebuffer port and the engine run on `clk_sys`, 50 MHz. The UART could stay on `clk_pix` as in Chapter 3.5, with an **asynchronous FIFO** between the two clocks: a FIFO whose write and read ports have separate clocks, with Gray-coded pointers synchronized across. That works, and it is exactly the kind of logic that is easy to get subtly wrong.
 
-The simple, safe choice is to run `uart_rx` and `uart_tx` on `clk_sys` too, with `CLK_HZ = 50_000_000`. The `rx` pin has no clock at all: it is an asynchronous signal, and `uart_rx`'s two-flop `synchronizer` already brings it safely into whatever clock samples it. With the UART on `clk_sys`, the FIFO, the parser, the engine and the reply all share one clock, and the only clock crossing in the whole design remains the dual-port framebuffer and palette RAMs from Step 4.1. Step 5.1's SPI slave does the same thing: it samples `SCK` and `MOSI` with `clk_sys` instead of using `SCK` as a clock, so it writes into the same single-clock FIFO.
+The simple, safe choice is to run `uart_rx` and `uart_tx` on `clk_sys` too, with `CLK_HZ = 50_000_000`. The `rx` pin has no clock at all: it is an asynchronous signal, and `uart_rx`'s two-flop `synchronizer` already brings it safely into whatever clock samples it. With the UART on `clk_sys`, the FIFO, the parser, the engine and the reply all share one clock, and the only clock crossing in the whole design remains the dual-port framebuffer and palette RAMs from Chapter 4.1. Chapter 5.1's SPI slave does the same thing: it samples `SCK` and `MOSI` with `clk_sys` instead of using `SCK` as a clock, so it writes into the same single-clock FIFO.
 
 ## 3. `uart_gpu`
 
@@ -117,7 +117,7 @@ module uart_gpu #(
 
 Outputs may be `reg` or `wire`. `i_rst` resets the parser and stops any command in progress. It need not empty the FIFO.
 
-Keep the transport and the engine apart. `cmd_engine` sees only "a FIFO with bytes in it" and "somewhere to send reply bytes". It doesn't know about baud rates, so Step 5.1 can put an SPI slave in front of the same FIFO.
+Keep the transport and the engine apart. `cmd_engine` sees only "a FIFO with bytes in it" and "somewhere to send reply bytes". It doesn't know about baud rates, so Chapter 5.1 can put an SPI slave in front of the same FIFO.
 
 ## 4. The engine's state machine
 
@@ -153,7 +153,7 @@ Because the engine only fetches in `FETCH`, a long command blocks the FIFO by it
 
 ### The commands
 
-**`SET_PALETTE index R G B`:** one write, `o_pal_wdata = {R, G, B}`, the same order as Step 4.1's palette and `pal_test.hex`. It changes the color of every pixel with that index on the next frame.
+**`SET_PALETTE index R G B`:** one write, `o_pal_wdata = {R, G, B}`, the same order as Chapter 4.1's palette and `pal_test.hex`. It changes the color of every pixel with that index on the next frame.
 
 **`CLEAR color`:** writes `color` to all 76,800 addresses, one per clock. Any order works. Aim for 76,800 clocks plus a few: Phase 4's throughput budget assumes one pixel per clock.
 
@@ -234,7 +234,7 @@ That one is a reply sent high byte first. Some other symptoms:
 
 ## 7. The Arty top
 
-`projects/4.2-cmd/top_artyz7.v` is Step 4.1's top with the switch logic replaced by `uart_gpu` on `clk_sys`:
+`projects/4.2-cmd/top_artyz7.v` is Chapter 4.1's top with the switch logic replaced by `uart_gpu` on `clk_sys`:
 
 - `uart_gpu #(.CLK_HZ(50_000_000), .BAUD(BAUD))`, with `BAUD` a top parameter (default 115,200), `i_rx` = `rst_sys | uart_rx` so the receiver sees an idle line until the clock is good, and `i_rst` = `rst_sys` or `btn[0]` through a `synchronizer`,
 - its draw ports straight to `fb_scanout`, which keeps `FB_FILE` and `PAL_FILE` so the test image appears at power-up,
@@ -245,7 +245,7 @@ Add one line to `boards/arty-z7-20/arty-z7-20.xdc`, after `uart_tx`, for Pmod JA
 
     set_property -dict {PACKAGE_PIN Y16 IOSTANDARD LVCMOS33} [get_ports {uart_cts}]
 
-The project's `SRCS` are Step 4.1's plus `uart_rx.v`, `uart_tx.v`, `fifo.v`, `cmd_engine.v` and `uart_gpu.v`. Set `TESTS := tb_uart_gpu`.
+The project's `SRCS` are Chapter 4.1's plus `uart_rx.v`, `uart_tx.v`, `fifo.v`, `cmd_engine.v` and `uart_gpu.v`. Set `TESTS := tb_uart_gpu`.
 
 ## 8. Build and read the report
 
@@ -268,13 +268,13 @@ Run `make` in `projects/4.2-cmd/`. The reference build took 29 seconds:
 
 (The report's `tail -n 3` catches the `clk_sys` line twice. The numbers are the same.)
 
-- Compared with Step 4.1 (852 LUTs, 192 flip-flops), the command processor costs about 480 LUTs and 230 flip-flops, a fraction of a percent of the chip.
-- **`RAMB18E1` 1** is the 512-byte FIFO. In `build/yosys.log` it shows as `mapping memory top_artyz7.u_gpu.u_fifo.mem via $__XILINX_BLOCKRAM_TDP_`, next to Step 4.1's lines for the framebuffer (`BLOCKRAM_TDP`) and the palette (`LUTRAM_SDP`: the palette is still in LUTs, not block RAM).
+- Compared with Chapter 4.1 (852 LUTs, 192 flip-flops), the command processor costs about 480 LUTs and 230 flip-flops, a fraction of a percent of the chip.
+- **`RAMB18E1` 1** is the 512-byte FIFO. In `build/yosys.log` it shows as `mapping memory top_artyz7.u_gpu.u_fifo.mem via $__XILINX_BLOCKRAM_TDP_`, next to Chapter 4.1's lines for the framebuffer (`BLOCKRAM_TDP`) and the palette (`LUTRAM_SDP`: the palette is still in LUTs, not block RAM).
 - **`clk_sys` reaches 169 MHz.** The CRC's 8-bit loop isn't the slowest path. In the reference build, the critical path is the compare of the 17-bit draw address with 76,799 that ends `CLEAR` and `FB_CRC`, driving many clock enables.
 
 ## 9. On the board
 
-Wire the USB-serial adapter as in Step 3.5: adapter TXD to JA pin 1, RXD to JA pin 2, GND to JA pin 5. If your adapter has a CTS input, you can connect it to JA pin 3, but this test doesn't need it. Connect the monitor and run `make prog`. Then:
+Wire the USB-serial adapter as in Chapter 3.5: adapter TXD to JA pin 1, RXD to JA pin 2, GND to JA pin 5. If your adapter has a CTS input, you can connect it to JA pin 3, but this test doesn't need it. Connect the monitor and run `make prog`. Then:
 
 1. The Chapter 4.1 test image appears and LD0 lights.
 2. Run the host script (copy `host/plot_test.py` next to `gpu_model.py`). With `--seed 7` it should print the lines below. The CRCs and the byte count are what `gpu_model` computes for that seed, so your hardware must match them exactly; the time is roughly what 7,711 bytes take at 115,200 baud (0.67 s), and yours will differ a little:

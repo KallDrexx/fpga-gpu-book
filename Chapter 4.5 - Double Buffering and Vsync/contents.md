@@ -149,7 +149,7 @@ The engine change is Section 5's two lines: one opcode in `S_EXEC` and one state
 
 ## 7. The `VSYNC` pin
 
-Step 5.1 gives the MCU a `VSYNC` pin, so that it knows when a frame starts. The scanout side has everything it needs, so build it now:
+Chapter 5.1 gives the MCU a `VSYNC` pin, so that it knows when a frame starts. The scanout side has everything it needs, so build it now:
 
 ```verilog
 always @(posedge i_clk_pix) o_vblank <= (i_y >= 10'd480);
@@ -296,7 +296,7 @@ Add `vsync` to the XDC (Section 7) and run `make`. The reference build took 45 s
 
 ## 11. On the board
 
-Wiring and programming are as in Step 4.2: adapter TXD to JA pin 1, RXD to JA pin 2, GND to JA pin 5. Put `SW0` down and run `make prog`. The monitor shows Chapter 4.1's test image.
+Wiring and programming are as in Chapter 4.2: adapter TXD to JA pin 1, RXD to JA pin 2, GND to JA pin 5. Put `SW0` down and run `make prog`. The monitor shows Chapter 4.1's test image.
 
 1. **Double buffered.** Run
 

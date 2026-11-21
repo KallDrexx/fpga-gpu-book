@@ -166,7 +166,7 @@ The new commands cost 30 to 40 LUTs in the engine and no memory. `clk_pix` close
 
 ## 9. The demo
 
-`host/stream_demo.py` scrolls a 256 x 96-tile level of ground, grass and trees on layer 1 while a small far layer of hills (written once, never streamed) moves at half speed on layer 0. The camera moves right 2 pixels per frame and follows the terrain up and down by at most 1 pixel per frame. Each frame the script calls `plan()`, sends the packets and both `SET_SCROLL`s right after `VSYNC` rises, and counts the bytes.
+`host/stream_demo.py` scrolls a 256 x 96-tile level of ground, grass and trees on layer 1 while a small far layer of hills (written once, never streamed) moves at half speed on layer 0. The camera moves right 2 pixels per frame and follows the terrain up and down by at most 1 pixel per frame. Each frame the script calls `plan()`, sends the packets and both `SET_SCROLL`s right after `VSYNC` rises, and counts the bytes. (Sent there, a scroll reaches the screen one or two frames later, depending on where in the blanking your design latches it. The picture is right either way, because the planner keeps the old and the new view valid together. Chapter 5.7 moves the send point to just after `VSYNC` falls, which removes the ambiguity.)
 
 The camera adds one trick: when a step would expose a new column and a new row in the same frame, it delays the vertical step by one frame. The view is a pixel late for one frame, which nobody sees, and no frame ever needs more than one 132-byte packet.
 

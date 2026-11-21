@@ -4,7 +4,7 @@ The tile engine from Chapter 2.3 draws anything that lines up with an 8x8 grid. 
 
 There is still no framebuffer. A sprite, like everything else on the Go Board, has to be computed as the beam passes. The trick that makes this cheap, **per-scanline sprite evaluation**, is the same one the NES used, and it also explains a limit every player of that console knows: too many sprites on one line, and some of them flicker or disappear.
 
-## What a sprite is
+## 1. What a sprite is
 
 Each of the four sprites is a **16x16 picture with 2 bits per pixel**, drawn in logical (320x240) pixels like everything else in this phase. Four registers describe it:
 
@@ -41,7 +41,7 @@ This chapter supplies `sprites.hex`, 16 images of 16 rows. One row is one 32-bit
 
 The ROM is 256 words of 32 bits, 8 Kbit, addressed by `{image, row}`. yosys builds it from two `SB_RAM40_4K`s side by side (each 256 x 16). As before, the read must be registered. The Python reference reads the same file, so edit the art as you like.
 
-## Per-scanline evaluation
+## 2. Per-scanline evaluation
 
 Drawing a sprite at pixel `(lx, ly)` needs one 2-bit value: row `ly - y`, column `lx - x` of its image. The obvious design reads the sprite ROM for every sprite on every pixel. That would mean four ROM reads per clock, and the block RAM has one read port.
 
@@ -83,7 +83,7 @@ The NES held 64 sprites in its object memory but had only **8 shift registers**.
 
 The limit is not about time. Between x = 640 and x = 768, where the shift registers start, this design could read more than a hundred rows from the ROM. The limit is **logic**: each sprite drawn at once needs its own 32-bit register, its own comparator and its own place in the priority mux, and every one of them is in use on every pixel. With four sprites and four registers this engine never runs out. If you want to feel the limit, try eight sprites in the sprite table with four registers: evaluation keeps the first four hits, in priority order, and the rest disappear on that line.
 
-## Mixing with the tiles
+## 3. Mixing with the tiles
 
 Build the whole display as one module, `sprite_engine`, with the same ports as `tile_engine` plus the sprite registers. Inside, instantiate your `tile_engine` from Chapter 2.3 and put the sprites on top of its output.
 
@@ -99,7 +99,7 @@ and delay `o_hsync`, `o_vsync` and `o_de` by the same total. The priority choice
 
 **When the positions change.** The game moves its sprites at the start of vertical blanking, exactly as in Pong, so every line of a frame sees the same positions and nothing tears. If your engine uses the sprite inputs directly, that is all you need. If it copies them into its own registers once per frame, do that late in vertical blanking: the testbench changes the inputs at the start of vertical sync (line 490), and the next frame must show the new positions.
 
-## A small shooter
+## 4. A small shooter
 
 The game is yours to design. The reference uses this layout:
 
@@ -120,7 +120,7 @@ Declare the positions `reg signed` and the constants `10'sd...`, or the comparis
 
 The tile layer is the background. Since the tile engine's map can be loaded from `MAP_FILE`, make a `shooter_map.hex` with a few lines of Python: 1,200 bytes in hex, tile 1 (wall) along row 29 and tile `0x2e` (the "." glyph) scattered as stars, 0 elsewhere. Nothing writes the map while the game runs, so tie the write port to 0.
 
-## The board
+## 5. The board
 
 Make `projects/2.4-shooter/` with a `top_goboard.v` that connects:
 
@@ -141,7 +141,7 @@ On the board, check by hand:
 5. Where sprites cross each other or the wall row, the lower-numbered sprite is in front and transparent pixels stay transparent.
 6. Nothing flickers or tears, even with all four sprites on the same lines.
 
-## Reading the resource report
+## 6. Reading the resource report
 
 For the reference design (the board top above, with the shift-register sprite engine), yosys 0.52 and nextpnr-ice40 report:
 
@@ -157,7 +157,7 @@ Info: Max frequency for clock 'i_Clk$SB_IO_IN_$glb_clk': 83.81 MHz (PASS at 25.0
 
 yosys's `stat` gives 479 `SB_LUT4`, 209 `SB_CARRY`, 269 flip-flops and 7 `SB_RAM40_4K`. With `-noflatten`, the sprite logic itself (`sprite_engine` without its `tile_engine`) is 285 LUTs, 23 carries, 153 flip-flops and the 2 block RAMs of the sprite ROM. `shooter_game` is 162 LUTs and 140 carries, almost all of them signed comparisons, `tile_engine` 61 LUTs and 5 block RAMs, and `vga_timing` 29 LUTs.
 
-The plan for this step warned that the design would come close to the HX1K's limit. The reference does not: it uses about half the chip. But look at where the cells go. Four sprites cost more than the whole tile engine, and most of that is the 128 bits of shift register, each needing a LUT to choose between "load", "shift" and "hold", plus a 10-bit comparator per sprite. That cost grows with every sprite you can draw on one line, so, as a rough estimate, eight sprites would take another 250 cells or so, and twelve would not fit next to the game. Memory is the other budget: 7 of 16 block RAMs are in use, and Chapter 2.5's 64x32 map needs one more.
+The plan for this step warned that the design would come close to the HX1K's limit. The reference does not: it uses about half the chip. But look at where the cells go. Four sprites cost more than the whole tile engine, and most of that is the 128 bits of shift register, each needing a LUT to choose between "load", "shift" and "hold", plus a 10-bit comparator per sprite. That cost grows with every sprite you can draw on one line, so, as a rough estimate, eight sprites would take another 250 cells or so, and twelve would not fit next to the game. Memory is the other budget: 7 of 16 block RAMs are in use, and Chapter 2.5's larger map, palette and sprite table bring that to 9.
 
 Check the log for `mapping memory ... r_rom via $__ICE40_RAM4K_` for the sprite ROM, next to the tile engine's two memories. If that line is missing, the 8 Kbit ROM became logic, and the design will not place. The usual cause is reading it in more than one place: keep one address mux and one plain registered read.
 

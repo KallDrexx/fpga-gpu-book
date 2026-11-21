@@ -136,7 +136,7 @@ The UART has no frames and the hardware does not resynchronize it: there is no b
 
 ## 7. Replies and the MISO bytes
 
-Replies are raw bytes with no header, in command order: 4 bytes for `FB_CRC`, 9 for `GET_INFO`, 12 for `GET_STATS`, 8 for `READ_VERTEX`. They go to the link that sent the most recent byte written into the FIFO.
+Replies are raw bytes with no header, in command order: 4 bytes for `FB_CRC`, 9 for `GET_INFO`, 12 for `GET_STATS`, 8 for `READ_VERTEX`, 12 for `GET_MESH_STATS`. They go to the link that sent the most recent byte written into the FIFO.
 
 - **UART:** sent on `TX` as they are produced.
 - **SPI:** replies wait in a 16-byte queue and are read with read frames. Every frame returns on `MISO`:
@@ -438,7 +438,7 @@ Bits 7:2 are ignored and there is no argument error. The four combinations are a
 
 `GET_STATS` (`64`, length 0) replies with the three counters, low byte first, in that order (12 bytes); it changes nothing. `CLEAR_STATS` (`65`, length 0) sets all three to 0. The counters **saturate** at 4,294,967,295. `pixels` and `written` are exactly what the model computes; `clocks` depends on the design (setup and pipeline depth), so tests check only that it is at least `pixels` (a rasterizer produces at most one pixel per clock) and within a generous bound. `pixels / clocks` is the throughput in pixels per clock.
 
-**Errors.** A wrong length for any of the five is skipped whole and sets `BAD_LEN`. `66`-`6F` are still unknown (`BAD_OP`).
+**Errors.** A wrong length for any of the five is skipped whole and sets `BAD_LEN`. (`66`-`6A` are now the mesh commands of section 18; `6B`-`6F` are still unknown, `BAD_OP`.)
 
 **Display lists.** `SET_DEPTH`, `CLEAR_DEPTH`, `CLEAR_ALL` and `CLEAR_STATS` may be in a list (a frame list typically starts with `CLEAR_ALL` and `SET_DEPTH`). `GET_STATS` may not: it makes a reply, so it is skipped with `BAD_OP` like `GET_INFO` and `FB_CRC`.
 

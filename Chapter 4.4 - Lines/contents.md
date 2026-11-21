@@ -2,7 +2,7 @@
 
 Chapter 4.3 filled rectangles with two counters, one pixel per clock. A line is harder: its pixels follow a slope like 17/50, and the engine has no divider and no fractions. **Bresenham's algorithm** draws it with integer adds and compares only. It keeps one error term, and each clock a compare on that term decides whether to step in x, in y, or in both. This chapter adds it as `DRAW_LINE`.
 
-Step 4.6 reuses the idea: a triangle's edge functions are stepped pixel by pixel with additions, and their signs decide which pixels are inside. A line is the easy first case, with one error term instead of three.
+Chapter 4.6 reuses the idea: a triangle's edge functions are stepped pixel by pixel with additions, and their signs decide which pixels are inside. A line is the easy first case, with one error term instead of three.
 
 By the end of this chapter you will have:
 
@@ -189,12 +189,12 @@ Nothing in the top changes. Copy `projects/4.3-rect/` to `projects/4.4-line/`, s
   Max frequency for clock 'clk_sys': 107.12 MHz (PASS at 50.00 MHz)
 ```
 
-- Compared with Step 4.3 (1,715 LUTs, 526 flip-flops, 98 `CARRY4`), `DRAW_LINE` costs about 540 LUTs, 130 flip-flops and 46 carry chains: the endpoint, dx/dy and error registers, their adders and compares, and the on-screen test.
+- Compared with Chapter 4.3 (1,715 LUTs, 526 flip-flops, 98 `CARRY4`), `DRAW_LINE` costs about 540 LUTs, 130 flip-flops and 46 carry chains: the endpoint, dx/dy and error registers, their adders and compares, and the on-screen test.
 - `clk_sys` moved from 110 to 107 MHz. The critical path is still Chapter 4.3's sort-and-clamp chain in `EXEC`, not the line's step: one compare and a three-input add per clock is comfortable at 50 MHz.
 
 ## 8. On the board
 
-Wiring and programming are as in Step 4.2: adapter TXD to JA pin 1, RXD to JA pin 2, GND to JA pin 5, monitor on HDMI TX, then `make prog`.
+Wiring and programming are as in Chapter 4.2: adapter TXD to JA pin 1, RXD to JA pin 2, GND to JA pin 5, monitor on HDMI TX, then `make prog`.
 
 1. The Chapter 4.1 test image appears and LD0 lights.
 2. Copy `host/line_test.py` next to `gpu_model.py`, and draw just the starburst:

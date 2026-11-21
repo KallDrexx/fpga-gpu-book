@@ -1,6 +1,6 @@
 # Chapter 3.2 - Clock Generation
 
-The Go Board's crystal was already a usable pixel clock. The Arty Z7's 125 MHz clock is not: VGA timing needs 25 MHz, Step 3.4's HDMI serializer needs a clock five times faster than the pixel clock and locked to it, and Phase 4's drawing engine wants a third speed of its own. Dividing with a counter, as Chapter 3.1 did, gives slow enable pulses, not real clocks. A clock made from flip-flop outputs runs on ordinary routing, with skew and glitches.
+The Go Board's crystal was already a usable pixel clock. The Arty Z7's 125 MHz clock is not: VGA timing needs 25 MHz, Chapter 3.4's HDMI serializer needs a clock five times faster than the pixel clock and locked to it, and Phase 4's drawing engine wants a third speed of its own. Dividing with a counter, as Chapter 3.1 did, gives slow enable pulses, not real clocks. A clock made from flip-flop outputs runs on ordinary routing, with skew and glitches.
 
 The XC7Z020 has hardware for this: four **clock management tiles**, each with an MMCM (mixed-mode clock manager) and a simpler PLL. In this chapter you use one MMCM to turn 125 MHz into three clocks. Then you solve the problem every multi-clock design has: when the clocks are not yet good, everything they drive must wait, and when they become good, each part of the design has to leave reset cleanly.
 
@@ -36,7 +36,7 @@ and every output is the VCO divided by its own counter:
 
   f_OUTn = f_VCO / On = f_in x M / (D x On)
 
-All outputs come from the same VCO, so they keep a fixed phase relationship to one another. A 25 MHz output and a 125 MHz output from one MMCM rise together on every 25 MHz edge. This is why Step 3.4 can hand data from the pixel clock to a serializer running five times faster.
+All outputs come from the same VCO, so they keep a fixed phase relationship to one another. A 25 MHz output and a 125 MHz output from one MMCM rise together on every 25 MHz edge. This is why Chapter 3.4 can hand data from the pixel clock to a serializer running five times faster.
 
 In the `MMCME2_BASE` primitive, the names are:
 
@@ -98,7 +98,7 @@ Put a `BUFG` between each MMCM output and the logic it clocks:
 BUFG u_bufg_pix (.I(w_pix), .O(o_clk_pix));
 ```
 
-If you forget, yosys's `synth_xilinx` inserts one for you on any net that drives clock pins. The log shows them as `$auto$clkbufmap` cells. Writing them out yourself documents the intent and keeps the count under your control, and 32 is a real budget once Phase 4 adds more clocks. The board clock in Chapter 3.1 got its `BUFG` this way automatically; that was the `BUFGCTRL: 1/32` line in the report.
+If you forget, yosys's `synth_xilinx` inserts one for you on any net that drives clock pins. The log shows them as `$auto$clkbufmap` cells. Writing them out yourself documents the intent and keeps the count under your control. The chip has 32 global buffers; this book's three clocks never come near that budget, but it is a real one in larger designs. The board clock in Chapter 3.1 got its `BUFG` this way automatically; that was the `BUFGCTRL: 1/32` line in the report.
 
 ## 3. Resets for generated clocks
 
@@ -140,7 +140,7 @@ All three assert together. Each releases two clock edges of its own domain after
 
 `rst_pix` is synchronous to `clk_pix`, so in the pixel domain you can use it either way: `always @(posedge clk_pix or posedge rst_pix)` or a synchronous `if (rst_pix)` inside `always @(posedge clk_pix)`. Both are safe, because the release always comes just after a clock edge. The asynchronous form also clears the domain while its clock is stopped. This chapter's counters use it. Xilinx often recommends synchronous resets for logic that maps into DSP or block RAM pipelines, which matters from Phase 4 on.
 
-Your Phase 0 to 2 modules have no reset ports. Step 3.5 decides how they start when it moves them onto `clk_pix`.
+Your Phase 0 to 2 modules have no reset ports. Chapter 3.5 decides how they start when it moves them onto `clk_pix`.
 
 ## 4. A note on clock domain crossing
 
@@ -148,7 +148,7 @@ You now have three clock domains. Any signal that goes from one to another cross
 
 - **A single bit** (a flag, a button) goes through a two-flip-flop synchronizer in the receiving domain.
 - **A multi-bit value** cannot simply be synchronized bit by bit, since the bits may arrive on different edges. Use a handshake, a dual-clock FIFO, or a true dual-port block RAM with one port in each domain. Phase 4's framebuffer is the last: the 50 MHz drawing engine writes one port while the 25 MHz scanout reads the other.
-- **Clocks from the same MMCM are related.** `clk_ser` is exactly 5 x `clk_pix` and aligned to it, so the timing tools can check paths between them like ordinary paths. Step 3.4's `OSERDESE2` relies on that: it takes 10-bit words on `clk_pix` and shifts them out on `clk_ser`. `clk_sys` is related too, but treat the pixel and system domains as unrelated anyway and cross between them only through RAM or synchronizers. Then the drawing engine's clock can change later without breaking anything.
+- **Clocks from the same MMCM are related.** `clk_ser` is exactly 5 x `clk_pix` and aligned to it, so the timing tools can check paths between them like ordinary paths. Chapter 3.4's `OSERDESE2` relies on that: it takes 10-bit words on `clk_pix` and shifts them out on `clk_ser`. `clk_sys` is related too, but treat the pixel and system domains as unrelated anyway and cross between them only through RAM or synchronizers. Then the drawing engine's clock can change later without breaking anything.
 
 The reset synchronizer is itself a small crossing: `LOCKED` is asynchronous, and each `reset_sync` brings it into one domain.
 

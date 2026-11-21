@@ -33,9 +33,9 @@ One lesson from Chapter 2.5 carries over. The eight flip-flops in a slice share 
 
 **DSP48E1.** A hard 25x18-bit multiplier with a 48-bit adder and accumulator behind it. On the Go Board a multiply cost a long chain of shifts and adds; here it is one block, and yosys infers it from `a * b`. Phase 6's matrix math lives in these.
 
-**MMCM, a preview.** A clock management tile multiplies and divides an input clock to make new clocks, with phase control. On the Go Board you used the 25 MHz crystal as the pixel clock. The Arty's clock is 125 MHz, so Step 3.2 uses an `MMCME2_BASE` to make 25 MHz (pixel), 125 MHz (serial, phase-aligned to the pixel clock) and 50 MHz (system). This chapter divides the clock with a counter only, as Chapter 0.1 did.
+**MMCM, a preview.** A clock management tile multiplies and divides an input clock to make new clocks, with phase control. On the Go Board you used the 25 MHz crystal as the pixel clock. The Arty's clock is 125 MHz, so Chapter 3.2 uses an `MMCME2_BASE` to make 25 MHz (pixel), 125 MHz (serial, phase-aligned to the pixel clock) and 50 MHz (system). This chapter divides the clock with a counter only, as Chapter 0.1 did.
 
-**Power-up values still work.** At the end of configuration, a 7-series chip loads every flip-flop with its `INIT` value, and yosys sets `INIT` from initial values in your Verilog (`reg [7:0] r_count = 0;`). Your reset-free Phase 0 to 2 modules keep working as written. Step 3.2 adds resets, because a clock from an MMCM is not stable until the MMCM says so.
+**Power-up values still work.** At the end of configuration, a 7-series chip loads every flip-flop with its `INIT` value, and yosys sets `INIT` from initial values in your Verilog (`reg [7:0] r_count = 0;`). Your reset-free Phase 0 to 2 modules keep working as written. Chapter 3.2 adds resets, because a clock from an MMCM is not stable until the MMCM says so.
 
 ## 2. The Zynq: PS and PL
 
@@ -49,7 +49,7 @@ The two halves talk over AXI buses, and the PS can configure the PL while it run
 **This book uses only the PL.** The PS never runs a line of code. That keeps the open-source flow simple, since no PS configuration or boot image is needed, and it keeps the GPU a plain piece of logic that an outside microcontroller drives, as Phase 5 plans. It has three consequences you have already seen in the Summary:
 
 - The **DDR3 is out of reach**. It hangs off the PS's memory controller. Everything stays in block RAM.
-- The board's **USB-UART is out of reach**. It is wired to the PS. Step 3.5 puts the fabric's UART on a Pmod pin through your USB-serial adapter.
+- The board's **USB-UART is out of reach**. It is wired to the PS. Chapter 3.5 puts the fabric's UART on a Pmod pin through your USB-serial adapter.
 - The **bitstream lives only in configuration SRAM**. You load it over JTAG, and it is gone at power-off. Booting the PL from flash on a Zynq needs a PS boot image (a first-stage boot loader), which is out of scope. Every session starts with `make prog`.
 
 The PL has its own clock. A 125 MHz clock from the board's Ethernet PHY chip reaches PL pin H16, a clock-capable pin, so no PS help is needed.
@@ -125,7 +125,7 @@ create_clock -period 8.000 [get_ports {clk}]
 ```
 
 - **`PACKAGE_PIN`** binds a port, or one bit of a vector port, to a ball of the 400-ball package. Ball names are a letter row and a number column (`H16`).
-- **`IOSTANDARD`** sets the voltage and signaling of the pin. Every Arty Z7 pin we use in this phase is 3.3 V `LVCMOS33`, except the HDMI pairs in Step 3.4 (`TMDS_33`). The iCE40 had one fixed standard per bank, so the `.pcf` never said it.
+- **`IOSTANDARD`** sets the voltage and signaling of the pin. Every Arty Z7 pin we use in this phase is 3.3 V `LVCMOS33`, except the HDMI pairs in Chapter 3.4 (`TMDS_33`). The iCE40 had one fixed standard per bank, so the `.pcf` never said it.
 - **`create_clock`** tells the timing analyzer the clock's period: 8 ns for 125 MHz. It replaces nextpnr-ice40's `--freq`. Without it nextpnr checks timing against its default target of 12 MHz, and a design too slow for 125 MHz would still "pass".
 
 `set_property -dict {...}` sets several properties in one line. The longer Vivado form, one `set_property` per property, also works.
@@ -163,7 +163,7 @@ This chapter supplies `arty-z7-20.xdc`. Copy it to `boards/arty-z7-20/arty-z7-20
 
 All are active high: a button reads 1 while pressed, a switch reads 1 when up, and an LED lights on 1. LD4 and LD5 are the two RGB LEDs.
 
-The file also lists Pmod headers JA and JB (Step 3.5's UART goes on one), the ChipKit header and audio. The HDMI output pins are there but commented out; Step 3.4 turns them on when it adds the differential output buffers.
+The file also lists Pmod headers JA and JB (Chapter 3.5's UART goes on one), the ChipKit header and audio. The HDMI output pins are there but commented out; Chapter 3.4 turns them on when it adds the differential output buffers.
 
 As with the `.pcf`, one board file serves every project. A line whose port is not in the design is skipped without a message (`nextpnr-xilinx --verbose` lists them). A port that is in the design but has no `PACKAGE_PIN` is an error:
 

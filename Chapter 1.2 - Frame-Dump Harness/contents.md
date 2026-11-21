@@ -128,7 +128,7 @@ FAIL: compare patterns (1 of 4 frames differ: border)
 
 That points straight at the bug: the right edge is drawn one column too far left. The script prints exactly one line starting with `PASS` or `FAIL` and exits with status 0 or 1, so make can stop on it.
 
-`--tolerance N` accepts pixels whose channels differ by at most N. Everything in Phases 1 to 5 must match exactly (tolerance 0). Tolerance is for Phase 6, where 3D shading is checked against a floating-point model.
+`--tolerance N` accepts pixels whose channels differ by at most N. Every frame test in this book must match exactly (tolerance 0), Phase 6's 3D pictures included, because each Python model does the same integer arithmetic as the hardware. The option is for experiments of your own, such as comparing a frame against a floating-point renderer.
 
 Each script sets `sys.dont_write_bytecode` before importing `ppm`, and the Makefile also sets `PYTHONDONTWRITEBYTECODE=1`, so Python never leaves `__pycache__` directories in `sim/py/`.
 
@@ -174,6 +174,8 @@ Also add `-y sim` to the iverilog flags your Phase 0 Makefile uses for `make tes
 
 `make frame` runs `frame-NAME` for every NAME in `FRAME_TESTS`. This chapter adds `patterns`. Consider making `make test` depend on `frame` as well, so one command checks everything.
 
+**Keep `tb_frame_*` out of the plain `make test` list.** Frame testbenches run from the repository root (they write `build/frame_*.ppm` and, from Chapter 2.2 on, read `rtl/common/*.hex`), while your Phase 0 rule runs every `sim/tb_*.v` from `build/sim/`. Run from there, a frame test finds neither path and fails. If `mk/sim.mk` collects its tests with a wildcard, filter them out, for example `ALL_TESTS := $(filter-out tb_frame_%,...)`; they belong to `make frame`.
+
 ### How later chapters plug in
 
 The harness is built around one naming convention. To add a frame test called NAME, a later chapter supplies (or asks you to write) two files:
@@ -187,7 +189,7 @@ and adds `FRAME_TESTS += NAME`. Nothing else changes. Some examples of what is c
 - **2.2, text mode:** the Python model reads the same font file as the font ROM and draws the same string.
 - **2.4 and 5.x, sprites and layers:** the model gets more complex, but the comparison stays the same. At that point the reference drawing code becomes a real golden model of each rendering block, kept in `sim/py/` and reused between chapters.
 - **4.x, the framebuffer:** BITS becomes 8 and maxval 255. The harness is unchanged.
-- **6.x, 3D:** `--tolerance` comes into use.
+- **6.x, 3D:** the Python models are fixed-point, so the comparison is still exact. Floating point appears only inside the reference scripts, as a check that the fixed-point model stays close to the ideal picture.
 
 As designs grow, put the video output of each graphics step in one portable module (for example `pong`, with `o_hsync`, `o_vsync`, `o_de` and color outputs). The frame-dump testbench then instantiates that one module, and `top_goboard.v` stays a thin pin mapping around the same module. The dump sees what the monitor sees.
 

@@ -29,7 +29,7 @@ When nothing is being sent the line **idles high**. A byte goes out as a frame o
 
 The next frame may start right after the stop bit, with no idle time at all. A PC sending a buffer does exactly that, so both your transmitter and receiver must handle frames back-to-back.
 
-Ten bits carry eight bits of data, so 115,200 baud moves 11,520 bytes per second. That is plenty for commands, and in Step 2.5 it is enough to scroll a tile map at 60 frames per second, because you send only a couple of bytes per frame.
+Ten bits carry eight bits of data, so 115,200 baud moves 11,520 bytes per second. That is plenty for commands, and in Chapter 2.5 it is enough to scroll a tile map at 60 frames per second, because you send only a couple of bytes per frame.
 
 ## 2. Baud timing
 
