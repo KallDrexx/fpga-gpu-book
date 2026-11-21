@@ -226,6 +226,8 @@ PASS: hud_demo (model)
 
 Then, with Chapter 5.1's wiring: program the bitstream; `.venv/bin/python host/spi_info.py` lists `DISPLAY_LISTS` (caps `03FF`); run `.venv/bin/python host/hud_demo.py --freq 5000000`. For ten seconds a green hill, a red stripe, a white line and a cyan triangle stay still while four yellow digits count and a diamond steps to the right. Experiments: stop the loop with `SET_AUTO_LIST FF` and watch the picture freeze with the last score; make a list that draws for longer than a frame and watch the score lag; patch a digit with a word whose high byte is wrong and watch the glyph jump.
 
+**Done when:** `make frame-display_lists` passes (the GPU redraws the whole screen with its score at every blanking while the host's traffic in the HUD window is only `WRITE_LIST_WORD`s), the edited frame tests, the new `tb_gpu_fuzz` and the earlier testbenches still pass, and on the board `hud_demo.py` keeps the HUD counting while it sends only the changed digits.
+
 ## Testbench requirements
 
 **Modules.**

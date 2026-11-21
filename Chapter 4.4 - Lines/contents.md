@@ -194,7 +194,7 @@ Nothing in the top changes. Copy `projects/4.3-rect/` to `projects/4.4-line/`, s
 
 ## 8. On the board
 
-Wiring and programming are as in Chapter 4.2: adapter TXD to JA pin 1, RXD to JA pin 2, GND to JA pin 5, monitor on HDMI TX, then `make prog`.
+Wiring and programming are as in Chapter 4.2: adapter TXD to JA pin 1, RXD to JA pin 2, GND to JA pin 5, monitor on HDMI OUT, then `make prog`.
 
 1. The Chapter 4.1 test image appears and LD0 lights.
 2. Copy `host/line_test.py` next to `gpu_model.py`, and draw just the starburst:

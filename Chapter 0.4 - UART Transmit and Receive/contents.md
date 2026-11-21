@@ -143,7 +143,7 @@ Then run the supplied ones:
 - **`tb_uart_loopback`** is the step's "Done when" test. It wires your transmitter into your receiver and sends all 256 byte values back-to-back, at 217 and at 13 clocks per bit.
 - **`tb_uart_echo`** checks the echo design of the next section.
 
-Then break things on purpose. Compare the bit counter against `CPB` instead of `CPB - 1`. Send the data MSB first. Skip the mid-bit confirmation of the start bit. Accept a 0 stop bit. Each should fail with a message that points at the mistake. Note that the off-by-one in the transmitter fails `tb_uart_tx` at both bit rates, but `tb_uart_loopback` only at 13 clocks per bit: at 217, a bit one clock long is 0.5% slow, and your receiver is designed to tolerate exactly that. A loopback test alone cannot catch two halves that are wrong in a compatible way, which is why each half has its own test against an independent model.
+Then break things on purpose. Compare the clock counter against `CPB` instead of `CPB - 1`. Send the data MSB first. Skip the mid-bit confirmation of the start bit. Accept a 0 stop bit. Each should fail with a message that points at the mistake. Note that the off-by-one in the transmitter fails `tb_uart_tx` at both bit rates, but `tb_uart_loopback` only at 13 clocks per bit: at 217, a bit one clock too long is 0.5% slow, and your receiver is designed to tolerate exactly that. A loopback test alone cannot catch two halves that are wrong in a compatible way, which is why each half has its own test against an independent model.
 
 ## 7. The echo
 

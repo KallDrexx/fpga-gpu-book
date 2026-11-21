@@ -222,6 +222,8 @@ Try the demo without the board first: `.venv/bin/python host/compositor_demo.py 
 4. At the end the script prints the frame count and the error flags, which should be clear.
 5. Experiments: set the player's `PRIORITY` to 1 and watch it step in front of the trees (equal item priorities: the sprites are the later source); make the three commands write the live registers directly and look for the order changing mid-frame; give layer 1 and the HUD both priority 3 and see which wins (layer 1, the later source).
 
+**Done when:** `make frame-compositor` passes (all eight frames, with every source overlapping, match the Python compositor), the edited `tb_frame_layers` and `tb_frame_sprite_table`, the new `tb_gpu_fuzz` and the earlier testbenches still pass, and `compositor_demo.py` switches the sources on and off on the monitor with no glitch.
+
 ## Testbench requirements
 
 **Modules.**

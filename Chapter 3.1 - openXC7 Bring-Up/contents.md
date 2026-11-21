@@ -150,7 +150,7 @@ If you see that message, look at your `get_ports` braces. Write `[get_ports {clk
 
 ### The board file
 
-This chapter supplies `arty-z7-20.xdc`. Copy it to `boards/arty-z7-20/arty-z7-20.xdc`. Its pins come from Digilent's Arty-Z7-20 master XDC, rewritten in the brace-safe form, and it keeps Digilent's port names so their examples drop in. The one exception is the clock: Digilent calls it `sysclk`, this file calls it `clk`. (The `arty-z7-20.pcf` already in that directory is no use to nextpnr-xilinx; you can delete it.) The pins for this chapter:
+This chapter supplies `arty-z7-20.xdc`. Copy it to `boards/arty-z7-20/arty-z7-20.xdc`. Its pins come from Digilent's Arty-Z7-20 master XDC, rewritten in the brace-safe form, and it keeps Digilent's port names so their examples drop in. The one exception is the clock: Digilent calls it `sysclk`, this file calls it `clk`. The pins for this chapter:
 
 | Port | Pin | | Port | Pin | | Port | Pin |
 | --- | --- | --- | --- | --- | --- | --- | --- |
@@ -255,7 +255,6 @@ TESTS := tb_blinker tb_arty_blink
 include $(ROOT)/mk/artyz7.mk
 ```
 
-(If you gave yourself a `make new` template in Phase 0, it makes a Go Board project. For an Arty project, copy this directory instead, or add a second template.)
 
 Finally, the testbench needs to find `top_artyz7.v`, which is not under `rtl/`. Until now `iverilog -y` found every module on its own, so `mk/sim.mk` has had no way to add a file for one testbench. Give it one: in the rule that compiles `sim/tb_X.v`, append `$(tb_X_SRCS)` to the iverilog command line, where `tb_X` is the testbench name (`$($*_SRCS)` in a `%` pattern rule). To make editing the top recompile, also list it as a prerequisite; in a pattern rule that takes `.SECONDEXPANSION:` and `$$($$*_SRCS)`. Then set it for this testbench in `mk/sim.mk`:
 

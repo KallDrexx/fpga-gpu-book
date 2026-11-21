@@ -144,7 +144,7 @@ The full run takes about 25 seconds. When it fails, the first lines of output na
 
 ## 8. The board project
 
-Create `projects/1.3-bouncing-square/`. Its `top_goboard.v` is the Chapter 1.1 top with `color_bars` replaced by `bouncing_square` (default parameters): `vga_timing`, the square, one register stage for the syncs and color, and the pin mapping. Set its `TESTS` to `tb_vga_timing tb_frame_motion`, and add `FRAME_TESTS += motion` to the top-level Makefile so `make frame` also checks the pixels.
+Create `projects/1.3-bouncing-square/`. Its `top_goboard.v` is the Chapter 1.1 top with `color_bars` replaced by `bouncing_square` (default parameters): `vga_timing`, the square, one register stage for the syncs and color, and the pin mapping. Set its `TESTS` to `tb_vga_timing`, and add `FRAME_TESTS += motion` to the top-level Makefile. As Chapter 1.2 explained, `tb_frame_motion` is a frame test: it runs from the repository root through `make frame-motion` (or `make frame`), which also checks the pixels.
 
 The reference design used to write this chapter reports:
 
@@ -155,7 +155,7 @@ The reference design used to write this chapter reports:
 | I/O pins | 12 | 112 |
 | Global buffers | 2 | 8 |
 
-Fmax is about 130 MHz. The second global buffer carries the frame tick: it is the clock enable of every game-state flip-flop (a fanout of 21), and nextpnr promotes high-fanout enables to a global net. Much of the growth over Chapter 1.1 comes from the adders and comparators against register values in the inside test.
+Fmax is about 130 MHz. The second global buffer carries the frame tick: it is the clock enable of every game-state flip-flop (about 20 of them), and nextpnr promotes high-fanout enables to a global net. Much of the growth over Chapter 1.1 comes from the adders and comparators against register values in the inside test.
 
 ### On the monitor
 

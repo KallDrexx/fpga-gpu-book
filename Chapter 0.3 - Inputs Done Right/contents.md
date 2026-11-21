@@ -71,9 +71,8 @@ To a 25 MHz clock, a 2 ms bounce is 50,000 cycles long and holds dozens of separ
 This chapter uses the counter method, because its behavior is exact and easy to test. With `N = CLK_HZ / 1000 * DEBOUNCE_MS` clocks:
 
 - `o_out` starts at 0.
-- While `i_in` equals `o_out`, nothing happens and the count is held at 0.
+- While `i_in` equals `o_out`, the count is held at 0.
 - While `i_in` differs from `o_out`, the count goes up by one each clock. When the input has differed for N clocks in a row, `o_out` takes the input's value and the count starts again from 0.
-- If the input goes back to matching the output before that, the count returns to 0.
 
 So during a bounce, every return to the old level resets the count, and the output does not move. Only when the contact has truly settled does the count run all the way to N. Then the output changes once, N clocks after the last bounce.
 
@@ -132,7 +131,7 @@ Testing input logic means writing a model of a misbehaving outside world. Four t
 Two techniques are worth copying:
 
 - **Scale time with parameters.** Real time at 25 MHz is far too slow to simulate. Because every duration in your design is computed from `CLK_HZ`, a testbench can pretend the clock is slower and keep every millisecond meaning the same thing. This only works if you never hard-code a clock count.
-- **Make "asynchronous" really asynchronous.** The testbench delays are random fractions of a nanosecond, such as `#(137.37)`, so the button never changes exactly on a clock edge. A stimulus that only changes in step with the clock would never exercise the synchronizer.
+- **Make "asynchronous" really asynchronous.** The testbench delays are random and not whole numbers of nanoseconds, such as `#(137.37)`, so the button never changes exactly on a clock edge. A stimulus that only changes in step with the clock would never exercise the synchronizer.
 
 **Exercise.** Before running the supplied testbench, write a small one of your own: a task that toggles an input a few dozen times at random intervals, then settles. Feed it into `button_counter` and watch the synchronized button, the debounced level, `o_rise` and `o_count` in GTKWave. Seeing the debouncer's count reset on each bounce, then run up to N, makes the design obvious.
 

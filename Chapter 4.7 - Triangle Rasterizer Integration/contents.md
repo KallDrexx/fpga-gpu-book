@@ -41,18 +41,7 @@ The engine's side of the handshake is short:
 
 The corners are already in the payload registers: `r_arg[0]` and `[1]` are x0, `[2]` and `[3]` are y0, and so on to `[12]`, the color. Chapter 4.2's 16-byte argument buffer holds all 13. `TRI` is the twelfth state, so the 4-bit state register is still enough.
 
-```verilog
-reg         r_tri_start = 1'b0;
-wire        w_tri_valid, w_tri_done;
-wire [15:0] w_tri_x, w_tri_y;
-
-tri_raster #(.SCREEN_W(320), .SCREEN_H(240)) u_tri (
-    .i_clk(i_clk), .i_start(r_tri_start),
-    .i_x0({r_arg[1],  r_arg[0]}),  .i_y0({r_arg[3],  r_arg[2]}),
-    .i_x1({r_arg[5],  r_arg[4]}),  .i_y1({r_arg[7],  r_arg[6]}),
-    .i_x2({r_arg[9],  r_arg[8]}),  .i_y2({r_arg[11], r_arg[10]}),
-    .o_busy(), .o_valid(w_tri_valid), .o_x(w_tri_x), .o_y(w_tri_y), .o_done(w_tri_done));
-```
+Instantiate one `tri_raster #(.SCREEN_W(320), .SCREEN_H(240))` inside the engine. Wire its corner inputs straight to those register pairs (high byte first in each concatenation, `{r_arg[1], r_arg[0]}` for x0), drive `i_start` from a register `r_tri_start`, and leave `o_busy` unconnected: the engine only needs `o_valid`, `o_x`, `o_y` and `o_done` (called `w_tri_valid`, `w_tri_x`, `w_tri_y` and `w_tri_done` below).
 
 In the engine's clocked block, `r_tri_start <= 1'b0;` goes with the other defaults at the top, so it is a one-clock pulse. The new pieces:
 
@@ -236,7 +225,7 @@ The reference build took 2 minutes 30 seconds (Chapter 4.5's took 45):
 
 ## 8. On the board
 
-Wiring and programming are as in Chapter 4.2: adapter TXD to JA pin 1, RXD to JA pin 2, GND to JA pin 5, monitor on HDMI TX. Put `SW0` down (double buffered), run `make prog`, and the Chapter 4.1 test image appears. Without a board, `tri_demo.py --model` prints the CRCs the hardware must reproduce:
+Wiring and programming are as in Chapter 4.2: adapter TXD to JA pin 1, RXD to JA pin 2, GND to JA pin 5, monitor on HDMI OUT. Put `SW0` down (double buffered), run `make prog`, and the Chapter 4.1 test image appears. Without a board, `tri_demo.py --model` prints the CRCs the hardware must reproduce:
 
 ```
 $ .venv/bin/python host/tri_demo.py --model --frames 4

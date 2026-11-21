@@ -1,8 +1,9 @@
 // tb_color_bars.v -- self-checking testbench for color_bars (Chapter 1.1).
 //
-// color_bars is combinational: for every x in 0..799 and both values of
-// i_de it checks (x < 640 only when i_de is high) the 3-bit-per-channel color against the expected
-// eight-bar pattern (80 pixels per bar) and black whenever i_de is low.
+// color_bars is combinational. For every x in 0..799 with i_de low, and
+// every x in 0..639 with i_de high, it checks the 3-bit-per-channel color:
+// the eight-bar pattern (80 pixels per bar) when i_de is high, and black
+// whenever i_de is low.
 //
 // Run: iverilog -g2012 -Wall -Wno-timescale -y rtl/common -o build/tb.vvp sim/tb_color_bars.v
 //      vvp -n build/tb.vvp          (add +vcd for waveforms)

@@ -55,7 +55,7 @@ endmodule
 - **`` `timescale 1ns/1ps ``** sets what `#1` means (1 ns) and how finely time is resolved. Only clock counts matter for these designs, so the exact unit is not important, but every file should state it.
 - **The clock** is an `always` block that inverts a register every 5 ns. It never stops on its own, which is why the testbench must end with `$finish`.
 - **The DUT** (design under test) is instantiated like any module, connected by name.
-- **`initial` blocks** run once, starting at time zero. Unlike `always` blocks they can contain delays (`#1`), waits on events (`@(posedge clk)`) and loops that span simulated time. Every `initial` and `always` block in the design runs concurrently.
+- **`initial` blocks** run once, starting at time zero. In a testbench they can contain delays (`#1`), waits on events (`@(posedge clk)`) and loops that span simulated time. Every `initial` and `always` block in the design runs concurrently.
 - **`$finish`** stops the simulator. Without it the clock keeps the simulation alive forever.
 - **The watchdog** is a second `initial` block that fails the test if the first one never finishes, for example because it is waiting for an output that never changes. A hung testbench is a failed testbench, and it must say so.
 

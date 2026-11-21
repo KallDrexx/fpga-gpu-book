@@ -162,7 +162,7 @@ Nothing in the top changes. Copy `projects/4.2-cmd/` to `projects/4.3-rect/`, se
 
 ## 8. On the board
 
-Wiring and programming are as in Chapter 4.2: adapter TXD to JA pin 1, RXD to JA pin 2, GND to JA pin 5, monitor on the HDMI TX port, then `make prog`.
+Wiring and programming are as in Chapter 4.2: adapter TXD to JA pin 1, RXD to JA pin 2, GND to JA pin 5, monitor on the HDMI OUT port, then `make prog`.
 
 1. The Chapter 4.1 test image appears and LD0 lights.
 2. Copy `host/rect_test.py` next to `gpu_model.py` and run it. It sets eight palette colors, clears, and sends 500 random rectangles of the same kinds as the testbench, with an `FB_CRC` after every 100. With `--seed 7` the byte count and every CRC below are what `gpu_model` computes, so your hardware must print them exactly. The time is roughly what 5,561 bytes take at 115,200 baud:

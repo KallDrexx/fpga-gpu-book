@@ -218,7 +218,7 @@ make frame                                             # the frame tests, Phases
 
 The first line proves that porting did not edit a core. The other two prove that the cores still do what they did: the Phase 1 and 2 tests (`tb_pong_game`, the UART tests, and every frame test from Chapters 1.2 to 2.5) read exactly the same `rtl/common/` files that the Arty builds read. If a test fails here, the port changed something it should not have. Revert it, and solve the problem in the top or with a parameter instead.
 
-Then build both projects for the Arty. That is the other half of portability: the same files synthesize for a second chip. A Go Board build of an old project (`make build P=2.5-scroll`) should still work too; `make build-all` does all of them.
+Then build both projects for the Arty. That is the other half of portability: the same files synthesize for a second chip. A Go Board build of an old project (`make` in `projects/2.5-scroll/`) should still work too.
 
 ## 10. Simulate
 

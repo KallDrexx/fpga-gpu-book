@@ -133,7 +133,7 @@ module tmds_encoder (
 
 Chapter 3.4 instantiates this three times: blue with `i_ctrl = {vsync, hsync}`, green and red with `i_ctrl = 2'b00`.
 
-**Stage 1** is plain combinational logic: count the ones in `i_data` (a `for` loop adding bits works, and so does `$countones`), then build the chain with a `for` loop. Assign `q_m[0]` before the loop, since each bit uses the one before.
+**Stage 1** is plain combinational logic: count the ones in `i_data` (a `for` loop adding the bits works), then build the chain with a `for` loop. Assign `q_m[0]` before the loop, since each bit uses the one before.
 
 **Stage 2** needs a counter for N1 of `q_m[7:0]`, the three-way decision and the counter update. Practical points:
 

@@ -310,6 +310,8 @@ Then, with the wiring of Chapter 5.1 (FT232H on Pmod JB):
 4. At the end the script prints the frame count and the error flags, which should be clear.
 5. Experiments: send `set_tile_layer(1)` or `set_tile_layer(2)` in `layer_demo.py` to see one layer alone; give the far layer a vertical scroll; set `FLIP_X` on every map entry. To see what tearing looks like, move the latch in your RTL to a fixed line in the middle of the frame (`i_y == 240`) and rerun: the hills shear at that line while they move. Put it back afterwards.
 
+**Done when:** `make frame-layers` passes (all ten frames, including the ones scrolled across the wrap, match the Python model exactly), the updated `tb_gpu_fuzz` and the earlier testbenches still pass, and `layer_demo.py` shows the two layers scrolling smoothly at different speeds on the monitor.
+
 ## Testbench requirements
 
 **Modules.**

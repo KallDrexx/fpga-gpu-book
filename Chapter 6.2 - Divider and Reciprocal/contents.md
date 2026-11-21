@@ -58,13 +58,13 @@ That is roughly 8 clocks for any width, and it pipelines to one divide per clock
 
 | | Sequential (restoring) | Table + Newton |
 |---|---|---|
-| Latency | N + 2 clocks (32 to 54 for the widths in Section 7) | about 8 clocks |
+| Latency | N + 2 clocks (32 and 54 for the two uses sized in Section 6) | about 8 clocks |
 | Throughput | one divide per latency | one per clock, pipelined |
 | Resources | a few hundred LUTs, no DSP, no RAM | 1 RAMB18, 2 to 3 DSP blocks, normalizer |
 | Result | exactly the rounded quotient | within 1 to 2 LSB, algorithm-dependent |
 | Python model | one line | table, widths and truncations replicated |
 
-**Build the sequential divider.** Section 7 shows its latency is affordable: well under 1 ms of a 33 ms frame at 30 frames per second, for both uses. Its result is the mathematically rounded quotient, so the models of 6.3 and 6.5 call one line of Python, and any disagreement with the RTL is a bug, not a table difference. A divide per pixel (perspective-correct texturing, a stretch goal) is where Newton earns its place.
+**Build the sequential divider.** Section 6 shows its latency is affordable: well under 1 ms of a 33 ms frame at 30 frames per second, for both uses. Its result is the mathematically rounded quotient, so the models of 6.3 and 6.5 call one line of Python, and any disagreement with the RTL is a bug, not a table difference. A divide per pixel (perspective-correct texturing, a stretch goal) is where Newton earns its place.
 
 ## 4. The rules
 
@@ -180,10 +180,10 @@ Typical failures:
 
 ## 9. Check the resources
 
-The `make dsp-%` target from Chapter 6.1 synthesizes the default parameters; to see a real size, set them with `chparam`:
+The `make dsp-%` target from Chapter 6.1 synthesizes the default parameters; to see a real size, set them with `chparam` (in a shell where openXC7's `export.sh` is sourced):
 
 ```sh
-. ~/opt/openxc7/export.sh && yosys -q -p "read_verilog -sv rtl/common/seq_divider.v; \
+yosys -q -p "read_verilog -sv rtl/common/seq_divider.v; \
   chparam -set NUM_W 36 -set DEN_W 34 -set FRAC 16 -set Q_W 34 seq_divider; \
   synth_xilinx -flatten -abc9 -arch xc7 -top seq_divider; tee -o build/div.stat stat"
 ```
@@ -197,6 +197,8 @@ A reference design gives:
 | `vtx` | about 160 | 96 | 37 |
 
 No DSP and no RAM. The CARRY4 blocks are the loop's subtractor, the rounding compare and increment, the limit compare and the negations. The two-steps-per-clock version is about a third larger. Your counts will differ; what matters is no DSP, and no pile of LUTs big enough to be a multiplier. Timing is no concern: the loop is one 35-bit subtract and a mux, and the finish step a few carry chains in a row; the reference `wide` configuration, placed and routed alone, reaches about 100 MHz.
+
+**Done when:** `tb_seq_divider` passes (all five configurations bit-exact against `div_ref`, including tiny divisors, negatives, the largest values, ties, overflow and divide by zero), and the synthesis report shows a few hundred LUTs and no DSP block.
 
 ## Phase 6 conventions set here
 

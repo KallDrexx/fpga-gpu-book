@@ -184,12 +184,12 @@ The testbench applies the first sum alone to measure the latency, then streams t
 
 ## 9. Check that yosys used the DSP block
 
-A passing simulation says nothing about the hardware: a multiplier built from a hundred LUTs and a carry chain simulates just as correctly. To see what you got, synthesize the module alone and read the cell counts. Add to the top Makefile:
+A passing simulation says nothing about the hardware: a multiplier built from a hundred LUTs and a carry chain simulates just as correctly. To see what you got, synthesize the module alone and read the cell counts. Add to the top Makefile (and run it from a shell where openXC7's `export.sh` is sourced, as in Chapter 3.1):
 
 ```make
 dsp-%:
 	@mkdir -p build
-	. ~/opt/openxc7/export.sh && yosys -q -p "read_verilog -sv rtl/common/$*.v; \
+	yosys -q -p "read_verilog -sv rtl/common/$*.v; \
 	  synth_xilinx -flatten -abc9 -arch xc7 -top $*; tee -o build/$*.stat stat" \
 	  && grep -E "DSP48E1|CARRY4|LUT[0-9]" build/$*.stat
 ```
@@ -212,6 +212,8 @@ To see which registers went into the block, add `write_verilog -noattr build/mac
 **Optional improvement.** Start each sum from 2^(FRAC−1) instead of 0: `r_p <= (clear ? HALF : r_p) + product`. The accumulator then already holds the rounding constant, and the output stage only shifts and saturates. yosys puts `HALF` on the C port and the CARRY4 count drops from 13 to 4. The result is bit-identical, so the testbench still passes.
 
 **About Fmax.** If you place and route the unit (wrapped in a small top whose inputs come from an LFSR), nextpnr-xilinx reports a very high maximum frequency (about 530 MHz for the reference). Don't trust it for DSP paths: an unpipelined version with the multiply, accumulate and rounding all in one clock reported about 450 MHz, which real silicon cannot do. The design runs at 50 MHz, so this is not a problem, but keep the pipeline registers anyway; they cost nothing inside the block.
+
+**Done when:** `tb_mac_unit` passes (about 100,000 sums match the Python model bit for bit, ties and saturation limits included) and `make dsp-mac_unit` lists one `DSP48E1`.
 
 ## Phase 6 conventions set here
 

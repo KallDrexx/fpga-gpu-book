@@ -63,12 +63,12 @@ What a frame can contain:
 | --- | --- | --- | --- |
 | `SET_SCROLL` x 2 | 7 each | every frame | 14 |
 | `MOVE_SPRITE` | 7 each | each sprite that moved (26 at most) | 182 |
-| `SET_SPRITE` | 11 | an enemy turns round (its flip bit changes) | 11 |
+| `SET_SPRITE` | 11 | instead of the `MOVE_SPRITE`, for an enemy that turns round (its flip bit changes) | 4 more for each of the 3 enemies: 12 |
 | `WRITE_TILE_COLUMN` or `_ROW` | 132 | about every 4 frames, never both in one frame | 132 |
 | `WRITE_LIST_WORD` | 7 each | a digit or the bar changed | 35 |
 | `RUN_LIST` | 3 | every frame | 3 |
 
-The worst cases add up to about 377 bytes. What the game actually sends over 600 frames (ten seconds):
+The worst cases add up to 378 bytes. What the game actually sends over 600 frames (ten seconds):
 
 ```
 600 frames: 138.3 bytes per frame on average, at most 317, at least 17 (budget 1024)
@@ -247,6 +247,8 @@ The project's goal is a GPU driven by a **microcontroller**, and this loop moves
 - **The game.** `Game.frame` is integer arithmetic over 26 sprites. The terrain heights, the coin arc and the level become tables or integer functions. The art and the setup bytes can be built on a PC and stored in flash.
 
 The log is itself a complete program for the GPU. An MCU can play `side_scroller.log` back with no game code at all: send the `S` lines, each frame's after its `VSYNC` fall. The board then shows the frames the simulator dumped, because both were fed the same bytes. No microcontroller is needed for this chapter; the Python host and the model are the reference.
+
+**Done when:** `side_scroller.py --model` passes with every frame under 1 KB, `make frame-replay` passes (the logged bytes, replayed into the Verilog design, give the six frames the model predicts), and on the board the game runs for 600 frames at the display's 60 Hz with no late frame and no error flag.
 
 ## Testbench requirements
 

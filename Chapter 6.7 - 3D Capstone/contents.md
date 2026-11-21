@@ -262,7 +262,7 @@ You should also be able to say why the light is set in camera space and turned i
 
 **Where to go next**, in roughly the order of payoff (the Summary's stretch goals), with what you can reuse:
 
-- **Texture mapping.** Affine first: interpolate `u` and `v` the way you interpolate intensity (Chapter 6.3), keep a texture in the asset RAM of Chapter 4.8, and look the texel up per pixel. Perspective-correct texturing then needs a reciprocal per pixel, which is a use for Chapter 6.2's divider.
+- **Texture mapping.** Affine first: interpolate `u` and `v` the way you interpolate intensity (Chapter 6.3), keep a texture in the asset RAM of Chapter 4.8, and look the texel up per pixel. Perspective-correct texturing then needs a reciprocal per pixel, which is the job for the table-plus-Newton reciprocal that Chapter 6.2 described and did not build.
 - **Near-plane clipping** instead of rejection: a triangle crossing the near plane becomes one or two new triangles with interpolated attributes; the places to change are the rejection step of `DRAW_MESH` and the vertex records, which would need room for the new vertices.
 - **Formal verification** of the FIFO and the command parser with SymbiYosys: the parser's invariants (a packet is skipped whole, a frame start always begins a packet) are written down in `protocol.md`.
 - **Per-line scroll registers** for raster effects: the tile layers of Chapter 5.3 already latch their scroll at blanking; latching it per line is a small table beside that.

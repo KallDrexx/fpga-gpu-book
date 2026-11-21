@@ -120,7 +120,7 @@ Make `color_bars` purely combinational, with `x` and `de` in and nine color bits
 
 ## 5. The board project
 
-Create `projects/1.1-vga-bars/` (from the template with `make new P=1.1-vga-bars` if you set that up in Phase 0). The thin `top_goboard.v` has `i_Clk` and the eleven VGA outputs as ports, and does three things:
+Create `projects/1.1-vga-bars/` with a `Makefile` and a `top_goboard.v`, as in Phase 0. The thin `top_goboard.v` has `i_Clk` and the eleven VGA outputs as ports, and does three things:
 
 1. Instantiates `vga_timing` and `color_bars`.
 2. Registers the two syncs and nine color bits in one flip-flop stage before they leave the chip.

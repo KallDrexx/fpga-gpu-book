@@ -253,6 +253,8 @@ The reference build (yosys about 35 s, place and route about 65 s) is essentiall
 
 `clk_sys` closes at about 70 MHz against 50 required. The frame-start bit, the flags and `GET_INFO` add only a few dozen flip-flops, and the 512 x 9 FIFO stays in the same 18 Kbit block RAM. (The LUT count came out slightly lower than Chapter 5.1's; small changes move synthesis results by a few percent either way.) On the logic analyzer the only new traffic is the `GET_INFO` exchange.
 
+**Done when:** `docs/protocol.md` is in the repository, `tb_gpu_fuzz` passes (after every burst of garbage, the next frame's commands run and reply correctly, and nothing hangs), Chapter 5.1's and Chapters 4.2 to 4.8's testbenches still pass, and on the board `spi_info.py --resync --clear` shows `TRUNC` set by the cut-off packet and then cleared.
+
 ## Testbench requirements
 
 **Modules.** All ports of `gpu_link` and `uart_gpu` are as in Chapter 5.1. The new behavior is inside them:

@@ -187,6 +187,8 @@ Then, with Chapter 5.1's wiring:
 3. `.venv/bin/python host/stream_demo.py --freq 5000000`. For about 14 seconds the ground, grass and trees of a 2,048-pixel level roll by, rising and falling with the terrain, with the hills behind at half speed. There should be no seam, no tile popping in at the right edge and no tear. The script prints the bytes per frame and `PASS: stream_demo`.
 4. Experiments: remove the camera's trick and see the largest frame become 278; raise `SPEED` to 12 (1.5 columns a frame, 198 bytes on average before the scrolls) and see the script fail; raise it to 190 and watch `plan()`'s assertion fire; send each frame's packets one frame late and watch the right edge; skip the assertion and overwrite a column still on screen, and watch it change in the middle of a frame.
 
+**Done when:** `make frame-streaming` passes (all fourteen frames of the scroll through the 256-tile-wide level match the reference), the edited frame tests, the new `tb_gpu_fuzz` and the earlier testbenches still pass, and on the board `stream_demo.py` scrolls the whole level with every frame under 200 bytes.
+
 ## Testbench requirements
 
 **Modules.**

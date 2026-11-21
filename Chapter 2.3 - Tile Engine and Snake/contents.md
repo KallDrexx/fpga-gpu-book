@@ -48,7 +48,7 @@ Edit the art freely. The Python reference reads the same file, so the frame test
 
 ## 2. Dual-port block RAM
 
-In 2.2 nothing wrote the character RAM while the board ran. Now the game writes the map at any time while the video reads it every 16 pixels. Each `SB_RAM40_4K` on the iCE40 has a **read port and a separate write port**, each with its own address, its own clock and, for the write port, its own enable. Both run in the same clock edge. A RAM like this, with one port for writing and one for reading, is sometimes called "simple dual-port" or "pseudo dual-port". You get it by writing the two ports as two separate statements on one array:
+In 2.2 nothing wrote the character RAM while the board ran. Now the game writes the map at any time while the video reads it every 16 pixels. Each `SB_RAM40_4K` on the iCE40 has a **read port and a separate write port**, each with its own address, its own clock and its own enable. Here both ports use the same clock. A RAM like this, with one port for writing and one for reading, is sometimes called "simple dual-port" or "pseudo dual-port". You get it by writing the two ports as two separate statements on one array:
 
 ```verilog
 always @(posedge i_clk) if (i_wr_en) r_map[i_wr_addr] <= i_wr_data;  // the game's port

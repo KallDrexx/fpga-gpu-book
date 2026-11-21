@@ -121,7 +121,7 @@ Two details deserve care.
 
 **The width.** The counter must hold values up to 12,499,999. Since 2²⁴ = 16,777,216, it needs 24 bits. Let the tools work this out from the parameter with `$clog2(HALF_PERIOD)` instead of typing 24, or the module will break the moment someone changes `CLK_HZ`.
 
-**The off-by-one.** A counter that goes 0, 1, ..., N−1 and then wraps visits N states, so it wraps every N clocks. If you compare against `N` instead of `N − 1`, every half period is one clock too long. On the board you would never see that (one part in 12.5 million), which is exactly why you want a testbench that can see it. Counting off-by-ones are the most common bug in this whole book; Chapter 1.2 has you hunting one in video timing.
+**The off-by-one.** A counter that goes 0, 1, ..., N−1 and then wraps visits N states, so it wraps every N clocks. If you compare against `N` instead of `N − 1`, every half period is one clock too long. On the board you would never see that (one part in 12.5 million), which is exactly why you want a testbench that can see it. Off-by-one counting errors are the most common bug in this whole book; Chapter 1.2 has you hunting one in video timing.
 
 That is all the logic you need. Writing `blinker` is your first task: a counter register, a comparison, and an `o_led` register that flips.
 
@@ -265,7 +265,7 @@ It cannot simulate 60 real seconds at 25 MHz in reasonable time, so it uses the 
 
 - starts with the LED off and is never `x` or `z`,
 - toggles exactly every `CLK_HZ / (2 × BLINK_HZ)` clocks (so the duty cycle is exactly 50%),
-- completes 60 blinks in exactly 60 simulated "seconds".
+- completes 60 blinks in exactly `60 / BLINK_HZ` simulated "seconds" (60 seconds at 1 Hz).
 
 Using two parameter sets catches a module that hard-codes a number instead of computing it. If the test fails, read the message: "toggle came 501 clocks after the previous one, expected 500" is the off-by-one from Section 5.
 

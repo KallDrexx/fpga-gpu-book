@@ -135,24 +135,11 @@ Check it: with `FLIP_X`, the first byte of a row, image column 0, lands at X = x
 
 Each clock the `BLIT` state handles one pixel:
 
-```verilog
-S_BLIT: begin
-    a_addr  <= sa;                      // ask the RAM for the next source byte
-    sa      <= sa + 1;
-    q1_v    <= 1'b1;                    // this pixel is now in the pipeline
-    q1_on   <= (cxp >= 0) && (cxp <= 319) && (cyp >= 0) && (cyp <= 239);
-    q1_da   <= {cyp[7:0], 8'd0} + {cyp[7:0], 6'd0} + cxp[8:0];     // y*320 + x
-    if (ix == b_w - 1) begin            // last pixel of a row
-        ix <= 0;  cxp <= b_xs;  cyp <= b_fy ? cyp - 1 : cyp + 1;
-        iy <= iy + 1;
-        if (iy == b_h - 1) r_state <= S_FETCH;
-    end else begin
-        ix <= ix + 1;  cxp <= b_fx ? cxp - 1 : cxp + 1;
-    end
-end
-```
+- It presents the source counter `sa` to the asset RAM and adds 1 to it.
+- It records three things for the pipeline described below: that a pixel entered (`q1_v`), whether its screen position (`cxp`, `cyp`) is on screen (`q1_on`), and its framebuffer address `cyp*320 + cxp` (`q1_da`).
+- It steps the position. Inside a row, `cxp` goes up by 1, or down with `FLIP_X`. At the last pixel of a row, `cxp` returns to the row start `b_xs` and `cyp` goes up by 1, or down with `FLIP_Y`. After the last pixel of the last row the engine returns to `FETCH`.
 
-`cxp` and `cyp` are the screen position, signed 17-bit, and `b_xs` remembers where each row starts. The address is Chapter 4.4's two shifts and an add; it is only used when the pixel is on screen, so the low bits are enough.
+`cxp` and `cyp` are the screen position, signed 17-bit, and `b_xs` remembers where each row starts. Two counters, `ix` and `iy`, count the sprite's columns and rows and say where a row and the sprite end. The address is Chapter 4.4's two shifts and an add; it is only used when the pixel is on screen, so the low bits are enough.
 
 The states before it set this up. `EXEC`, for a `BLIT` of length 6 whose id is valid in the table, copies the entry's base, w and h and the flags into `b_` registers and goes to `BSET`; any other `BLIT` goes back to `FETCH`. `BSET` sets `sa = base`, `ix = iy = 0`, `cyp = FLIP_Y ? y + h − 1 : y`, and `cxp = b_xs = FLIP_X ? x + w − 1 : x`.
 
@@ -166,16 +153,9 @@ With `UPH`, `BSET` and `BLIT` the engine has 15 states, so Chapter 4.3's 4-bit s
 | 1 | the RAM has latched the byte (`a_rdata`); the screen address moves to `q2` |
 | 2 | `if (q2_v && q2_on && (a_rdata != 0 || b_opq))` write `a_rdata` at the screen address |
 
-`q1_v <= 1'b0;` goes with the defaults at the top of the clocked block, so `q1_v` is 1 only on clocks when `S_BLIT` ran. The rest goes after the case statement, where it wins over those defaults:
+Give `q1_v` a default of 0 at the top of the clocked block, so it is 1 only on clocks when `S_BLIT` ran. Put the copy from `q1` to `q2` and the write of clock 2 after the case statement: they then run in every state, so the last pixels still come out after the engine has left `S_BLIT`, and they win over the defaults above.
 
-```verilog
-q2_v <= q1_v;  q2_on <= q1_on;  q2_da <= q1_da;
-if (q2_v && q2_on && (a_rdata != 8'd0 || b_opq)) begin
-    o_fb_we <= 1'b1;  o_fb_addr <= q2_da;  o_fb_wdata <= a_rdata;
-end
-```
-
-That `if` is the transparency test: a zero index (without `OPAQUE`) never raises `o_fb_we`. The last writes land two clocks after the loop ends. Fetching and executing even the shortest next packet takes five clocks or more, so nothing else touches the framebuffer or the RAM in between.
+The condition at clock 2 is the transparency test: a zero index (without `OPAQUE`) never raises `o_fb_we`. The last writes land two clocks after the loop ends. Fetching and executing even the shortest next packet takes five clocks or more, so nothing else touches the framebuffer or the RAM in between.
 
 **Cost.** The loop spends one clock on every sprite pixel, **including the ones that are off screen or transparent**. That is simple and costs at most 32,640 clocks (0.65 ms) for the biggest possible image. Skipping the off-screen part would need a second clipping calculation; the testbench allows it if you are curious.
 
@@ -294,7 +274,7 @@ The reference build took 1 minute 36 seconds:
 
 ## 8. On the board
 
-Wiring and programming are as in Chapter 4.2: adapter TXD to JA pin 1, RXD to JA pin 2, GND to JA pin 5, monitor on HDMI TX. Put `SW0` down (double buffered), run `make prog`, and the Chapter 4.1 test image appears. Without a board, `blit_demo.py --model` prints the CRCs the hardware must reproduce:
+Wiring and programming are as in Chapter 4.2: adapter TXD to JA pin 1, RXD to JA pin 2, GND to JA pin 5, monitor on HDMI OUT. Put `SW0` down (double buffered), run `make prog`, and the Chapter 4.1 test image appears. Without a board, `blit_demo.py --model` prints the CRCs the hardware must reproduce:
 
 ```
 $ .venv/bin/python host/blit_demo.py --model --frames 4

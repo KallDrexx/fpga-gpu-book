@@ -156,7 +156,7 @@ Write it, then run `make frame`. If a frame fails, open the diff image next to t
 
 ## 6. Wiring it into make
 
-`frame.mk` (supplied) adds the frame rules. Copy it to the repository root and add one line to the top-level Makefile, after its variables:
+`frame.mk` (supplied) adds the frame rules. Copy it to the repository root and add two lines to the top-level Makefile, after its variables:
 
 ```make
 PYTHON = .venv/bin/python

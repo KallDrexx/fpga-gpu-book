@@ -302,6 +302,8 @@ First try the demo without the board: `.venv/bin/python host/sprite_demo.py --mo
 4. At the end the script prints the frame count and the error flags, which should be clear.
 5. Experiments: set `FLIP_X` on every second sprite; stack 17 sprites on one line and watch the 17th vanish; make table writes immediate (bypass the shadow) and watch moving sprites shear at the beam line. Put it back afterwards.
 
+**Done when:** `make frame-sprite_table` passes (all eight frames match the Python model, including the rows where more than 16 sprites share a line), the updated `tb_frame_layers` and `tb_gpu_fuzz` and the earlier testbenches still pass, and `sprite_demo.py` moves 32 sprites on the monitor with one `MOVE_SPRITE` each per frame.
+
 ## Testbench requirements
 
 **Modules.**

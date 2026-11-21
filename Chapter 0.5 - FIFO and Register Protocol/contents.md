@@ -102,7 +102,7 @@ The interface has a write side (`i_wr_en`, `i_wr_data`), a read side (`i_rd_en`,
 
 The same rule in code is the whole design, nearly. Compute `w_wr = i_wr_en && !o_full` and `w_rd = i_rd_en && !o_empty`, use `w_wr` for the RAM write and the write pointer, `w_rd` for the RAM read and the read pointer, and both for the count. Make `o_empty` and `o_full` either combinational comparisons on the count or registers updated alongside it; both pass the tests.
 
-The other common style is the **first-word-fall-through** (FWFT, or "show-ahead") FIFO, where `o_rd_data` already shows the oldest word while `o_empty` is 0, and `i_rd_en` means "I have taken it". It is convenient for the consumer but needs an extra register stage in front of the block RAM. This book uses the plain style above, so the consumer must deal with the one-clock latency itself, which is a habit worth building now.
+The other common style is the **first-word-fall-through** (FWFT, or "show-ahead") FIFO, where `o_rd_data` already shows the oldest word while `o_empty` is 0, and `i_rd_en` means "I have taken it". It is convenient for the consumer but needs extra logic around the block RAM, whose read is always one clock behind. This book uses the plain style above, so the consumer must deal with the one-clock latency itself, which is a habit worth building now.
 
 Write `fifo` with parameters `WIDTH` (default 8) and `DEPTH` (default 512, a power of two). Give the pointers and count initial values of 0, and leave `mem` and `o_rd_data` without initial values or resets.
 
@@ -154,7 +154,7 @@ The parser is a state machine of the Chapter 0.4 kind. It waits for an opcode, t
               +---------------------------------------------------------------------+
 ```
 
-Every state except REPLY moves on when it receives a byte. REPLY moves on when the transmitter accepts the reply. Two details need care.
+Every state except REPLY moves on when it receives a byte. REPLY moves on when the transmitter accepts the reply. Three details need care.
 
 **The FIFO's one-clock latency.** The parser pops a byte by raising `o_rd_en` while `i_empty` is 0. The byte appears on `i_rd_data` *after* that edge. So the parser must remember that it popped (a one-bit register, set on the popping edge) and use the byte on the next clock. The simplest correct scheme alternates: pop, then use, then pop again. That handles a byte every two clocks, about a thousand times faster than the UART delivers them (one byte per 2,170 clocks at 115,200 baud). Using `i_rd_data` in the same clock as `o_rd_en` reads the previous byte instead, and the testbench catches that at once.
 

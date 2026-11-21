@@ -284,7 +284,7 @@ assign spi_ready = ready;
 
 Add `spi_slave.v` and `gpu_link.v` to `SRCS`.
 
-**Build.** `source ~/opt/openxc7/export.sh`, then `make` in `projects/5.1-spi/`. The reference build (yosys 30 s, place and route 50 s):
+**Build.** Source openXC7's `export.sh` (Chapter 3.1), then run `make` in `projects/5.1-spi/`. The reference build (yosys 30 s, place and route 50 s):
 
 | Resource | Used | Of |
 | --- | --- | --- |
@@ -328,6 +328,8 @@ The script clears the screen, draws rectangles, lines and a triangle, and reads 
 - The read frame starts with `FF` on `MOSI`; `MISO` carries `45 04` and then the CRC from the script's output, least significant byte first.
 - `READY` is high at the start. To see it fall, send four `CLEAR`s and then 300 bytes of `NOP`s in one frame without looking at `READY`: it drops while the engine is busy and comes back when it catches up.
 - Raise the rate and watch `MISO` change 40 to 60 ns after each falling edge: at 6 MHz that is most of the half period.
+
+**Done when:** `tb_spi_slave`, `tb_link_arb` and `tb_gpu_spi` pass (Chapter 4.8's stream over SPI gives the same framebuffers and `FB_CRC` replies as over the UART), Chapters 4.2 to 4.8's testbenches still pass, `spi_test.py` prints `PASS` on the board, and the waveforms on the logic analyzer match the list above.
 
 ## Testbench requirements
 
