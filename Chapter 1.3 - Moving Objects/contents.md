@@ -27,14 +27,7 @@ The pixel logic only *reads* the game state. The game logic only *writes* it, an
 
 The monitor draws the frame from top to bottom over about 16 ms. If the square's position changes while the beam is halfway down, the lines above the beam were drawn with the old position and the lines below with the new one. The square on screen is not one square at all, but the top of one and the bottom of another:
 
-```
-    update while the beam is here
-             |
-   line 238  ####....        old position
-   line 239  ####....
-   line 240  ..####..   <--  new position from here down
-   line 241  ..####..
-```
+![Updating the object position mid-frame leaves the old position above the beam and the new one below](figures/update-mid-frame.svg)
 
 This is **tearing**. With a slow square it looks like a jagged edge that flickers. With fast motion, or with several objects updated at different times, whole objects look broken or appear twice. It also gets worse in a subtle way when the game state is more than one register. If `x` is updated on one clock and `y` on another, a frame can be drawn with a new `x` and an old `y`: a position the object never had.
 

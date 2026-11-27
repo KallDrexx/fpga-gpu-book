@@ -72,14 +72,7 @@ Why test the crossing instead of just "is the ball overlapping the paddle"? A ba
 
 Pong has three states:
 
-```
-          SERVE_FRAMES ticks                  point, score < WIN_SCORE
-  SERVE ---------------------> PLAY  ------------------------------> SERVE
-    ^                           |
-    |                           | point, score reaches WIN_SCORE
-    |    OVER_FRAMES ticks      v
-    +-------------------------- OVER     (scores cleared on the way out)
-```
+![Pong game states](figures/pong-states.svg)
 
 - **SERVE**: the ball waits in the centre. After `SERVE_FRAMES` ticks the state becomes PLAY, and the ball first moves on the tick after that. At power-up the game is in SERVE, scores 0-0, ball centred heading right and down, paddles centred at y = `(H - PAD_H) / 2`.
 - **PLAY**: the ball moves by the rules above.

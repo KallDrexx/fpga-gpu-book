@@ -13,17 +13,7 @@ By the end of this chapter you will have:
 - `sim/tb_frame_scanout.v` passing under `make frame-scanout`: the simulated frame is the test image scaled 2x, exactly,
 - `projects/4.1-scanout/`: the test image on an HDMI monitor.
 
-```
-         clk_sys (50 MHz)                                 clk_pix (25 MHz)
-  draw port (Step 4.2) ──> port A ┌─────────────┐ port B <── address <── vga_timing x, y
-                                  │ framebuffer │                          │
-                                  │ 320x240x8   │ ──> index               │ hsync, vsync, de
-                                  └─────────────┘        │                 │
-  palette writes ───────> write  ┌─────────────┐ read <─┘                 delay to match
-                                  │ palette     │                          │
-                                  │ 256 x RGB888│ ──> red, green, blue ──> hdmi_tx (Step 3.4)
-                                  └─────────────┘
-```
+![Framebuffer scanout: two RAMs written on clk_sys, read on clk_pix](figures/scanout-block.svg)
 
 ## 1. A framebuffer and its budget
 

@@ -77,12 +77,7 @@ Declare constants and intermediate values `signed` at the full width, and wrap p
 
 The Zynq XC7Z020 on the Arty has 220 DSP48E1 blocks. Each is a complete multiply-accumulate datapath:
 
-```
- A (30-bit port, 25 bits into the multiplier) ─┐
-                                               ├─ 25 x 18 signed multiplier ─ M ─┐
- B (18-bit) ───────────────────────────────────┘                                 ├─ 48-bit ALU ─ P
- 0 / P (feedback) / C (48-bit) ──────────────────────────────────────────────────┘
-```
+![DSP48E1 multiply-accumulate: P = A × B + (0, P or C)](figures/dsp48-datapath.svg)
 
 - The multiplier is **signed 25 × 18**. A 16 × 16 product uses one block; a 32 × 32 product takes four.
 - The **48-bit ALU** after it adds, subtracts or does logic, and one of its inputs can be the block's own output P. That is an accumulator with no fabric logic. The OPMODE input picks that ALU input per clock: P to continue a sum, or 0 (or the C port) to start a new one, so clearing a sum costs nothing.
@@ -119,11 +114,7 @@ module mac_unit #(
 
 **Pipeline.** The reference design has four register stages, with the flags (`valid`, `clear`, `last`) travelling alongside the data:
 
-```
-edge:      1            2         3           4
-inputs -> r_a, r_b -> r_m ----> r_p ------> o_data, o_valid
-          (AREG/BREG)  (MREG)   (PREG)      (round + saturate in the fabric)
-```
+![DSP48 pipeline: one register per stage, latency of four clock edges](figures/dsp48-pipeline.svg)
 
 1. Register `i_a`, `i_b` and the flags.
 2. Register the product `r_a * r_b`, `A_W + B_W` bits wide.

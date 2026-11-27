@@ -12,14 +12,7 @@ By the end of this chapter you will have:
 - `sim/tb_uart_gpu.v` passing, against expected results from `sim/py/ref_cmd.py`,
 - `projects/4.2-cmd/`: the board, drawing what the host sends, and `host/plot_test.py` showing that its CRC equals Python's.
 
-```
-            clk_sys (50 MHz)
- uart_rx ──> uart_rx ──> fifo ─────> cmd_engine ──> draw port ──> fb_scanout (Step 4.1) ──> HDMI
-  (pin)                 512 bytes       │    ▲
-                         │ count        │    └─ framebuffer read-back (FB_CRC)
-            uart_cts <── ~o_ready       ▼
- uart_tx <────────────── uart_tx <── reply bytes
-```
+![Command processor data path](figures/command-path.svg)
 
 ## 1. Packets
 

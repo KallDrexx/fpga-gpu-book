@@ -130,11 +130,7 @@ input  wire i_vblank,                                    // fb_scanout's o_vblan
 
 All of `uart_gpu`'s ports stay. Both receivers write the one FIFO, and the command engine reads it without knowing where a byte came from:
 
-```
-uart_rx --\                                     /--> uart_tx
-           >-- FIFO --> cmd_engine --> replies <
-spi_slave -/                                    \--> reply queue --> MISO
-```
+![Two transports share one command FIFO](figures/transports.svg)
 
 Two senders can share one byte stream only if they take turns at packet boundaries, and the FIFO cannot enforce that: a byte-by-byte merge of two packets is garbage. So the rule is **one link at a time**, and SPI wins: a UART byte is written only while no SPI frame is open (`o_frame` low) and no SPI byte arrives in the same clock. A UART byte that arrives during an SPI frame is dropped.
 

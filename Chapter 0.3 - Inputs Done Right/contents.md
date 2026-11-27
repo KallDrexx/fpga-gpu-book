@@ -20,11 +20,7 @@ Press switch 1 and its pin goes high; release it and the pin goes low. Three thi
 
 The fixes go in that order, each feeding the next:
 
-```
- i_Switch_1 --> [ synchronizer ] --> [ debounce ] --> [ edge_detect ] --o_rise--> i_en [ counter ]
-   async          2 flip-flops       stable for       one-clock pulse            from Chapter 0.2
-                                     10 ms            per press
-```
+![Button input pipeline: synchronizer, debounce, edge detect, counter](figures/input-pipeline.svg)
 
 ## 2. Metastability
 
@@ -42,10 +38,7 @@ Three facts about metastability are worth remembering:
 
 The standard fix is two flip-flops in a row, clocked by your clock, with nothing between them:
 
-```
- i_async --> [D  Q] --r_meta--> [D  Q] --> o_sync
-              clk                clk
-```
+![Two-flip-flop synchronizer](figures/synchronizer.svg)
 
 The first flip-flop samples the raw pin and may go metastable. It then has one whole clock period, 40 ns at 25 MHz, to settle before the second flip-flop samples it. A metastable state lasting a whole 40 ns is so unlikely that the second flip-flop's output is, for practical purposes, always a clean 0 or 1. The rest of the design uses only `o_sync`. The price is two clocks of latency, which for a button is nothing.
 
@@ -93,12 +86,7 @@ After debouncing you have a clean level: high while the button is held, low othe
 
 `o_rise` is `i_level & ~r_prev`, and `o_fall` is `~i_level & r_prev`. Make them combinational `assign`s, like the counter's `o_wrap`. Then `o_rise` is high during the very first clock cycle in which the level is 1, and only that cycle, because by the next cycle `r_prev` has caught up:
 
-```
- clk       _|‾|_|‾|_|‾|_|‾|_|‾|_|‾|_
- i_level   ______|‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾‾
- r_prev    __________|‾‾‾‾‾‾‾‾‾‾‾‾‾
- o_rise    ______|‾‾‾|_____________
-```
+![Edge detect: a one-clock pulse on each rising edge](figures/edge-detect-timing.svg)
 
 A pulse exactly one clock wide is a **tick**, the same kind of signal as `o_wrap` in Chapter 0.2, and it is made to drive a clock enable. Connect `o_rise` to the `counter`'s `i_en` and the counter steps once per press.
 

@@ -18,16 +18,7 @@ By the end of this chapter you will have:
 
 The beam reads the framebuffer from the first row to the last, once every 16.8 ms. The engine writes whenever it likes. A write to a row the beam hasn't reached yet shows in this frame; a write to a row it has passed shows only in the next. So a picture redrawn while the beam crosses it is split at the beam's row:
 
-```
-    frame N-1: bar at x=100        beam at row 90 when the engine draws frame N
-    ┌──────────────────┐
-    │   █              │  rows 0-89:   already scanned, still the old bar
-    │   █              │
-    ├──────────────────┤  <- the beam, at the moment of the redraw
-    │        █         │  rows 90-239: scanned after the redraw, the new bar
-    │        █         │
-    └──────────────────┘
-```
+![Tearing: the beam is at row 90 when the engine redraws the bar](figures/tearing.svg)
 
 A `CLEAR` makes it worse: rows the beam reaches between the `CLEAR` and the redraw show up blank.
 

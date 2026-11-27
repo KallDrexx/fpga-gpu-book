@@ -173,10 +173,7 @@ The board design needs something to happen once per second. The tempting way is 
 
 Instead, keep one clock for the whole design and use **clock enables**. The divider counter runs every cycle, and its `o_wrap` is a **tick**: a pulse exactly one clock wide, once every `MAX + 1` clocks. Feed that tick into the `i_en` of the next counter. Everything still runs on the 25 MHz clock, but the second counter only steps once per tick. This is why `counter` has both an `i_en` and an `o_wrap`: chaining them is the whole point.
 
-```
-             i_en=1                       i_en
- i_Clk --> [ counter  MAX=CLK_HZ-1 ] --o_wrap(tick)--> [ counter WIDTH=8 ] --> o_count[7:0]
-```
+![Two counters in series: a clock divider feeding an 8-bit counter](figures/counter-chain.svg)
 
 Writing `counter` is your next task. It is a handful of lines.
 
@@ -184,17 +181,7 @@ Writing `counter` is your next task. It is a handful of lines.
 
 A 7-segment digit is seven LED bars, named A to G clockwise from the top, with G in the middle:
 
-```
-   --A--
-  |     |
-  F     B
-  |     |
-   --G--
-  |     |
-  E     C
-  |     |
-   --D--
-```
+![Seven-segment display: segments A to G](figures/seven-segment.svg)
 
 Lighting the right subset draws a digit. Hexadecimal needs 16 shapes; `b` and `d` are drawn in lower case so they do not look like `8` and `0`. The patterns this book uses (and the testbench checks) are:
 

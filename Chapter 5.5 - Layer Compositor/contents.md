@@ -74,12 +74,7 @@ Layer first, item second sits in between. The layer priorities give a global ord
 
 Each source already has a pipeline that ends in one palette index per pixel. The compositor becomes the last stage before the palette, replacing Chapter 5.4's priority multiplexer:
 
-```
-framebuffer RAM --> index -----(delay)--+
-tile_layers     --> 2 x (index, item) --+--> compositor --> palette --> RGB
-sprite_lines    --> {opaque, item, idx} +       ^
-                      (delay)            live priorities, backdrop, FB enable
-```
+![Layer compositor inputs and outputs](figures/compositor.svg)
 
 What arrives at the compositor in one clock must belong to one pixel. Chapter 5.4 already delays the framebuffer index and the sprite pixel to meet the tile output; that alignment stays. Two units must now hand over more than one merged index:
 

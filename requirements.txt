@@ -3,3 +3,4 @@ Pillow
 pyserial
 markdown-it-py
 Pygments
+pypdf

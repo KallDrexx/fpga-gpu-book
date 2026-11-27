@@ -15,18 +15,7 @@ By the end of this chapter you will have:
 
 An MMCM is a phase-locked loop with several output dividers:
 
-```
-            +-----+      +-----+      +-----+      +-----------+
- CLKIN1 --->| /D  |----->| PFD |----->| VCO |--+-->| /O0       |---> CLKOUT0
-            +-----+      +-----+      +-----+  |   +-----------+
-                            ^                  +-->| /O1       |---> CLKOUT1
-                            |                  |   +-----------+
-                            |                  +-->|   ...     |---> CLKOUT2..6
-                            |                  |   +-----------+
-                            |                  +-->| /M        |---> CLKFBOUT
-                            |                      +-----------+         |
-  CLKFBIN ------------------+<-------------------------------------------+
-```
+![MMCM block diagram](figures/mmcm.svg)
 
 The **VCO** (voltage-controlled oscillator) runs fast, at hundreds of MHz. The **PFD** (phase-frequency detector) compares the divided input clock with the feedback clock and speeds up or slows down the VCO until the two match exactly. The feedback is the VCO divided by M, so in balance:
 
@@ -128,11 +117,7 @@ Give the registers an initial value of 1, so a domain starts in reset even befor
 
 A synchronizer can only be synchronous to *one* clock. A reset released on a 25 MHz edge arrives at the 50 MHz and 125 MHz flip-flops at an arbitrary point in their cycles, which is the problem you just solved. So **each clock domain gets its own synchronizer**, all fed by the same asynchronous source:
 
-```
-  i_rst | ~LOCKED ---+--> reset_sync (clk_pix) --> rst_pix
-                     +--> reset_sync (clk_ser) --> rst_ser
-                     +--> reset_sync (clk_sys) --> rst_sys
-```
+![One reset synchronizer per clock domain](figures/reset-fanout.svg)
 
 All three assert together. Each releases two clock edges of its own domain after `LOCKED` rises, so the releases come at slightly different times. That is fine, because nothing in one domain should depend on the exact cycle when another left reset.
 

@@ -10,14 +10,7 @@ By the end of this chapter you will have:
 - `sim/tb_hdmi.v` passing: it receives your four TMDS pairs the way a monitor does and checks the decoded video, and
 - color bars on a real monitor, which reports 640x480 at 60 Hz.
 
-```
- clk (125 MHz) ─> clk_gen ─> clk_pix (25 MHz), clk_ser (125 MHz), rst_pix
-
- vga_timing ─> color_bars ─> 3 to 8 bits ─> register ─┬─> tmds_encoder (blue + syncs) ─> serializer ─> d[0]
- (x, de, hsync, vsync)                                ├─> tmds_encoder (green)        ─> serializer ─> d[1]
-                                                      └─> tmds_encoder (red)          ─> serializer ─> d[2]
-                                                          constant 1111100000         ─> serializer ─> clk
-```
+![HDMI output pipeline](figures/hdmi-pipeline.svg)
 
 ## 1. The serializer: `OSERDESE2`
 

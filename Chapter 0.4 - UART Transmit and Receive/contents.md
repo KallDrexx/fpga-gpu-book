@@ -16,12 +16,7 @@ A UART sends bytes over one wire per direction, with no clock wire. The two ends
 
 When nothing is being sent the line **idles high**. A byte goes out as a frame of 10 bits, each lasting exactly one bit time:
 
-```
- idle  start  d0   d1   d2   d3   d4   d5   d6   d7   stop  idle
- ‾‾‾‾‾|____|‾‾‾‾|____|‾‾‾‾|____|____|____|‾‾‾‾|____|‾‾‾‾‾‾‾‾‾‾‾‾‾
-        0     1    0    1    0    0    0    1    0     1
-                       byte 0x45 ('E'), sent LSB first
-```
+![UART frame for byte 0x45, sent LSB first](figures/uart-frame.svg)
 
 - **The start bit** is always 0. The falling edge from idle to start is the only timing reference the receiver gets; it marks "a frame begins now".
 - **Eight data bits** follow, **least significant bit first**. Sending `0x45` (binary `0100_0101`) puts `1, 0, 1, 0, 0, 0, 1, 0` on the line, in that order.
@@ -49,14 +44,7 @@ The blinker, the counter and the debouncer each did one thing over and over. A U
 
 Draw it before you write it. For the transmitter:
 
-```
-            i_valid
-   +------+ (latch byte)  +-------+  CPB clocks  +------+ 8 x CPB clocks +------+
-   | IDLE |-------------->| START |------------->| DATA |--------------->| STOP |
-   +------+               +-------+              +------+                +------+
-      ^                                                                     |
-      +---------------------------- CPB clocks -----------------------------+
-```
+![uart_tx state machine](figures/uart-tx-fsm.svg)
 
 In Verilog, give each state a name with `localparam`, keep the current state in a register, and describe everything in one clocked block with a `case` on the state:
 
@@ -115,11 +103,7 @@ There is one wrinkle. Your synchronizer powers up holding 0, so for the first tw
 
 **Sample every bit in its middle.** From the middle of the start bit, wait CPB clocks to reach the middle of data bit 0, sample it, wait CPB clocks, sample bit 1, and so on. Shift each sample in from the top (`{rx, shift[7:1]}`) so that bit 0, sent first, ends in position 0.
 
-```
- line      ‾‾‾|_____start_____|‾‾‾‾‾d0‾‾‾‾‾|_____d1______|‾‾‾ ...
- samples          ^ confirm           ^ d0          ^ d1
-              |<- CPB/2 ->|<---- CPB ---->|<--- CPB --->|
-```
+![uart_rx sampling: confirm the start bit at half a bit time, then sample once per bit](figures/uart-rx-sampling.svg)
 
 The middle is the right place because it is as far as possible from both edges, which is what gives the timing budget of Section 2: the sample can drift almost half a bit before it lands in the wrong bit. Sampling right after the edge instead leaves no margin, and the testbench, which sends 1.5% fast and 1.5% slow, will catch it.
 

@@ -165,10 +165,7 @@ Write one `.pcf` for the whole board and list every pin on it (7-segment display
 
 Going from Verilog to a configured FPGA takes four tools in a row:
 
-```
-  .v sources --yosys--> .json --nextpnr-ice40--> .asc --icepack--> .bin --iceprog--> board
-               synthesis        place & route          packing         programming
-```
+![Build flow: Verilog sources to a programmed board](figures/toolchain.svg)
 
 **Synthesis (yosys).** Yosys parses your Verilog, works out what hardware it describes, optimizes it, and maps it onto the iCE40's primitives: `SB_LUT4` lookup tables, `SB_DFF` flip-flops, `SB_CARRY` cells for fast adders, and I/O cells. The output is a netlist in JSON.
 

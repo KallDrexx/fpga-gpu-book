@@ -58,11 +58,7 @@ The PL has its own clock. A 125 MHz clock from the board's Ethernet PHY chip rea
 
 openXC7 is the open-source flow for Xilinx 7-series parts. It has the same shape as the iCE40 flow, with one extra stage:
 
-```
- .v --yosys--> .json --nextpnr-xilinx--> .fasm --fpga-as--> .bit --openFPGALoader--> board
-      synth_xilinx      place & route             assemble              JTAG
-                        (+ chipdb, .xdc)          (+ Project X-Ray database)
-```
+![Build flow: Verilog sources to a programmed Arty Z7-20](figures/toolchain-xilinx.svg)
 
 Install openXC7 (its toolchain installer builds or downloads everything below) and `source` its `export.sh` in each shell before building. The script puts the tools on `PATH` and sets two variables the Makefile needs:
 

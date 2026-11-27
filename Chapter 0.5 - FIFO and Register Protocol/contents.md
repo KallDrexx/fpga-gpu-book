@@ -66,13 +66,7 @@ To check that the RAM was inferred, read the report. nextpnr's utilization summa
 
 A FIFO is a block RAM used as a ring. A **write pointer** says where the next word goes; a **read pointer** says where the oldest word is. Each write stores a word at the write pointer and advances it; each read takes the word at the read pointer and advances it. Both wrap around from `DEPTH - 1` to 0. If `DEPTH` is a power of two the wrap is free: a pointer of `$clog2(DEPTH)` bits simply overflows.
 
-```
-          rd_ptr            wr_ptr
-            v                 v
-   +----+----+----+----+----+----+----+----+
-   |    | w0 | w1 | w2 | w3 |    |    |    |      DEPTH = 8, count = 4
-   +----+----+----+----+----+----+----+----+
-```
+![FIFO storage: eight words, read pointer at the oldest, write pointer at the next free slot](figures/fifo-storage.svg)
 
 ### Full, empty and the count
 
@@ -92,13 +86,7 @@ The interface has a write side (`i_wr_en`, `i_wr_data`), a read side (`i_rd_en`,
 - **Both decisions use the flags as they were before the edge.** So when the FIFO is full, a read and a write on the same edge give a read only: the count drops to `DEPTH - 1`. When it is empty, they give a write only. In between, both happen and the count does not change.
 - **Read data comes after the edge.** After an accepted read, `o_rd_data` holds the word that was read, and it keeps that value until the next accepted read. This follows directly from the block RAM: the reading edge is the edge that loads the RAM's output register.
 
-```
- clk        _|‾|_|‾|_|‾|_|‾|_|‾|_
- i_rd_en    ____|‾‾‾‾‾‾‾|________     two reads accepted
- o_rd_data  ==== ?  |  w0 |  w1 ====  each word appears after its reading edge
- o_count    ===  2  |  1  |  0  ====
- o_empty    ____________|‾‾‾‾‾‾‾‾‾
-```
+![FIFO read timing: two reads accepted back to back](figures/fifo-read-timing.svg)
 
 The same rule in code is the whole design, nearly. Compute `w_wr = i_wr_en && !o_full` and `w_rd = i_rd_en && !o_empty`, use `w_wr` for the RAM write and the write pointer, `w_rd` for the RAM read and the read pointer, and both for the count. Make `o_empty` and `o_full` either combinational comparisons on the count or registers updated alongside it; both pass the tests.
 
@@ -143,16 +131,7 @@ A few design decisions are hidden in this small table:
 
 The parser is a state machine of the Chapter 0.4 kind. It waits for an opcode, then collects the bytes that follow:
 
-```
-                      'W'                 addr              data
-            +------+ ----> +---------+ --------> +---------+ ---------> back to OP
-  other --> |  OP  |       | W_ADDR  |           | W_DATA  |  (write the register)
-  (skip)    +------+ ----> +---------+           +---------+
-              ^       'R'  +---------+   addr    +---------+
-              |            | R_ADDR  | --------> |  REPLY  | -- transmitter accepts --+
-              |            +---------+ (look up) +---------+                          |
-              +---------------------------------------------------------------------+
-```
+![reg_parser state machine](figures/reg-parser-fsm.svg)
 
 Every state except REPLY moves on when it receives a byte. REPLY moves on when the transmitter accepts the reply. Three details need care.
 
@@ -172,12 +151,7 @@ At the system level, nothing in this chapter can make the transmitter the bottle
 
 `uart_regs` is wiring:
 
-```
- i_rx --> uart_rx --(o_valid, o_data)--> fifo --(rd)--> reg_parser --(tx_valid, tx_data)--> uart_tx --> o_tx
-                    wr_en, wr_data       512 x 8         |    ^  busy                          |
-                                                         |    +--------------------------------+
-                                                         +--> o_reg0, o_reg1
-```
+![UART register path: receiver, FIFO, parser, transmitter](figures/uart-register-path.svg)
 
 `uart_rx`'s one-clock `o_valid` pulse is the FIFO's write enable and its `o_data` the write data. Use `fifo #(.WIDTH(8), .DEPTH(512))`, one block RAM. Leave the FIFO's `o_full` unconnected for now, or better, think about what you would do with it: in Phase 4 a "nearly full" version of it becomes the flow-control signal that makes the host wait, and in Phase 5 a status bit the host can read.
 
